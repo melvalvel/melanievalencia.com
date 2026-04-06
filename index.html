@@ -68,7 +68,7 @@ nav.scrolled { padding: 0.8rem 2.5rem; }
 .hero h1 em { font-style: italic; color: var(--terracotta); }
 .hero-desc { font-size: 1.1rem; font-weight: 300; color: var(--fg-soft); max-width: 480px; margin-bottom: 2rem; }
 .hero-badges { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2.5rem; }
-.badge { font-size: 0.72rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.4rem 0.9rem; border: 1px solid var(--accent); color: var(--accent); border-radius: 2px; }
+.badge { font-size: 0.78rem; font-weight: 500; letter-spacing: 0.02em; padding: 0.4rem 0.9rem; border: 1px solid var(--accent); color: var(--accent); border-radius: 2px; }
 .badge.highlight { background: var(--accent-dark); color: var(--cream); border-color: var(--accent-dark); }
 .hero-visual { display: flex; justify-content: center; align-items: center; }
 .hero-graphic { width: 380px; height: 380px; position: relative; }
@@ -200,13 +200,17 @@ footer a:hover { color: var(--gold); }
 <!-- ══════ HERO ══════ -->
 <section class="hero" id="hero">
   <div class="hero-text">
+    <div style="margin-bottom:1rem;">
+      <button onclick="setLang('en')" id="heroEN" style="background:var(--accent-dark);color:var(--cream);border:1px solid var(--accent-dark);padding:0.4rem 1rem;font-family:var(--font-mono);font-size:0.72rem;cursor:pointer;border-radius:2px 0 0 2px;letter-spacing:0.08em;">EN</button><button onclick="setLang('es')" id="heroES" style="background:none;color:var(--fg-muted);border:1px solid rgba(0,0,0,0.15);border-left:none;padding:0.4rem 1rem;font-family:var(--font-mono);font-size:0.72rem;cursor:pointer;border-radius:0 2px 2px 0;letter-spacing:0.08em;">ES</button>
+    </div>
     <div class="hero-eyebrow" id="hero-eyebrow">Circular Economy · Climate · Social Innovation</div>
     <h1 id="hero-h1">Melanie Valencia<br><em>Closing loops,</em><br>opening futures</h1>
     <p class="hero-desc" id="hero-desc">Senior circular economy and climate change consultant and researcher bridging environmental sciences, economics, and social justice to build inclusive circular economies in Latin America and beyond.</p>
     <div class="hero-badges">
-      <span class="badge highlight">PhD · KU Leuven</span>
-      <span class="badge">MPH · Columbia University</span>
-      <span class="badge" id="badge-multi">Multilateral Consulting</span>
+      <span class="badge highlight">PhD KU Leuven</span>
+      <span class="badge">MPH Columbia University</span>
+      <span class="badge" id="badge-multi">Consultoría para multilaterales</span>
+      <span class="badge" id="badge-acad">Académica y Artivista</span>
     </div>
   </div>
   <div class="hero-visual">
@@ -223,7 +227,7 @@ footer a:hover { color: var(--gold); }
       <p id="about-p1">Originally from <strong>Ambato, Ecuador</strong>, I am a circular economy consultant and researcher working at the intersection of environmental sciences, climate change, and social innovation. My career spans international development consulting, academic research, and biotech entrepreneurship — all guided by the conviction that sustainability must be inclusive to be real.</p>
       <p id="about-p2">My PhD at <strong>KU Leuven</strong> (Belgium) explored the social determinants of the circular economy, focusing on how informal recyclers and waste pickers — particularly women — can be included in circular economy models across Latin America.</p>
       <p id="about-p3">Today I consult for <strong>GIZ</strong> and the <strong>Inter-American Development Bank</strong> on circular economy strategy, bioeconomy in the Amazon, and climate adaptation. I have also consulted for several multilateral organizations and NGOs including <strong>WIEGO, UNIDO, FAO, and WWF</strong>. I lecture at <strong>Universidad San Francisco de Quito</strong>, serve as a thesis supervisor at the <strong>University of Cambridge CISL</strong> since 2024, and am a co-founding member of the <strong><a href="https://www.alianzabasuracero.ec" target="_blank" rel="noopener">Zero Waste Alliance in Ecuador</a></strong> since 2019. Beyond consulting and research, I am a storyteller — selected by The Moth for a bilingual storytelling course — and a published poet. I also served as a <strong>Project Drawdown</strong> research fellow, estimating the impact of scaling existing climate solutions.</p>
-      <p id="about-p4">Earlier in my career, I co-founded CarboCycle at Columbia University, developing technology to produce palm oil substitutes from organic waste via precision fermentation. The venture was later <a href="https://insempra.bio" target="_blank" rel="noopener">acquired by Insempra.bio</a>, where the technology continues to scale sustainable ingredients for the cosmetics and food industries.</p>
+      <p id="about-p4">Earlier in my career, I co-founded CarboCycle at Columbia University, developing technology to produce palm oil substitutes from organic waste via precision fermentation. The venture was later <a href="https://insempra.bio" target="_blank" rel="noopener">acquired by Insempra.bio</a>, where the technology continues to scale sustainable ingredients for the cosmetics and food industries. This work earned me recognition as one of MIT Technology Review's Innovators Under 35.</p>
       <p id="about-p5">I am closing loops for the future of my kids, Navi and Nina.</p>
     </div>
     <aside class="about-sidebar">
@@ -264,7 +268,7 @@ footer a:hover { color: var(--gold); }
     <div class="timeline-item"><div class="tl-year">2023–Now</div><div class="tl-content"><h3>Consultant, Climate Change &amp; Bioeconomy</h3><div class="org">Inter-American Development Bank (IDB Lab)</div><p>Advising on bioeconomy ventures in the Amazon at the intersection of climate adaptation, biodiversity financing, and sustainable development for indigenous communities.</p></div></div>
     <div class="timeline-item"><div class="tl-year">Various</div><div class="tl-content"><h3>Consultant for Multilateral Organizations &amp; NGOs</h3><div class="org">WIEGO · UNIDO · FAO · WWF · University of Cambridge CISL</div><p>Consulting on circular economy, informal sector inclusion, sustainable development, and climate policy for various multilateral organizations and international NGOs. Thesis supervisor at the University of Cambridge Institute for Sustainability Leadership (CISL) since 2024.</p></div></div>
     <div class="timeline-item"><div class="tl-year">2019–Now</div><div class="tl-content"><h3>Co-Founding Member</h3><div class="org"><a href="https://www.alianzabasuracero.ec" target="_blank" rel="noopener">Zero Waste Alliance Ecuador (Alianza Basura Cero Ecuador)</a></div><p>Co-founded Ecuador's zero waste alliance, advocating for waste reduction, circular economy policy, and community-based waste management solutions.</p></div></div>
-    <div class="timeline-item"><div class="tl-year">2021–2022</div><div class="tl-content"><h3>Head of Sustainability / Co-Founder</h3><div class="org">Origin.bio (CarboCycle) → now <a href="https://insempra.bio" target="_blank" rel="noopener">Insempra.bio</a></div><p>Led sustainability strategy after CarboCycle merged with Origin.bio in Munich. The company was subsequently acquired by Insempra.bio.</p></div></div>
+    <div class="timeline-item"><div class="tl-year">2021–2022</div><div class="tl-content"><h3>Head of Sustainability / Co-Founder</h3><div class="org">CarboCycle → acquired by <a href="https://insempra.bio" target="_blank" rel="noopener">Insempra.bio</a></div><p>Led sustainability strategy as CarboCycle scaled its precision fermentation technology. The company was subsequently acquired by Insempra.bio.</p></div></div>
     <div class="timeline-item"><div class="tl-year">2020</div><div class="tl-content"><h3>Leonardo Imagination Fellow</h3><div class="org">ASU Center for Science and the Imagination</div><p>Virtual fellowship exploring art-science innovation aligned with the UN Sustainable Development Goals. Developed the Mycorrhiza Project — blending biomimicry, circular economy, and storytelling with waste picker communities across the Global South.</p></div></div>
     <div class="timeline-item"><div class="tl-year">2019–2024</div><div class="tl-content"><h3>PhD Researcher</h3><div class="org">KU Leuven — Leuven School of Business &amp; Economics</div><p>Interdisciplinary doctoral research on social contributions of the circular economy, gender and CE, and informal recycling in Latin America.</p></div></div>
     <div class="timeline-item"><div class="tl-year">2015–Now</div><div class="tl-content"><h3>Lecturer &amp; Former Sustainability Officer</h3><div class="org">Universidad San Francisco de Quito (USFQ)</div><p>Teaching sustainability, environmental sciences, and circular economy (2017–present). Previously served as Sustainability Officer (2015–2018), leading institutional sustainability assessments and carbon footprint studies.</p></div></div>
@@ -292,8 +296,8 @@ footer a:hover { color: var(--gold); }
     <div class="project-card">
       <div class="project-tag" id="pc3-tag">Climate · IDB</div>
       <h3 id="pc3-h3">Amazon Bioeconomy</h3>
-      <p id="pc3-p">Consulting on bioeconomy ventures supporting indigenous communities with sustainable business plans that value natural capital and deliver climate benefits.</p>
-      <a href="https://www.linkedin.com/in/melanievalencia/" class="project-link" target="_blank" rel="noopener" id="pc3-link">Learn more →</a>
+      <p id="pc3-p">Scouting and designing projects with bioeconomy ventures supporting indigenous communities with sustainable business plans that deliver climate benefits.</p>
+      <a href="https://www.iadb.org/en/who-we-are/topics/amazonia/amazon-bioeconomy-fund" class="project-link" target="_blank" rel="noopener" id="pc3-link">Learn more →</a>
     </div>
     <div class="project-card">
       <div class="project-tag" id="pc4-tag">Climate · Research</div>
@@ -317,13 +321,13 @@ footer a:hover { color: var(--gold); }
     <h2 class="section-title" id="pub-title">Research &amp; writing</h2>
   </div>
   <div class="pub-list">
-    <div class="pub-item"><div class="pub-year">2025</div><div><h3>Comprehensive analysis of plastic regulations in Ecuador: Evaluating the path to a circular economy</h3><div class="pub-authors">Ochoa-Herrera, V., Valencia, M. et al.</div><div class="pub-journal">Cleaner and Circular Bioeconomy, 2025</div><a href="https://www.sciencedirect.com/science/article/pii/S266679162500017X" target="_blank" rel="noopener">ScienceDirect →</a></div></div>
+    <div class="pub-item"><div class="pub-year">2025</div><div><h3>Comprehensive analysis of plastic regulations in Ecuador: Evaluating the path to a circular economy</h3><div class="pub-authors">Ochoa-Herrera, V., Apraez, M., Flor, D., Flores, C., Valencia, M., &amp; Velasco, A.</div><div class="pub-journal">Cleaner Production Letters, 2025</div><a href="https://www.sciencedirect.com/science/article/pii/S266679162500017X" target="_blank" rel="noopener">Cleaner Production Letters →</a></div></div>
     <div class="pub-item"><div class="pub-year">2024</div><div><h3>Sociomaterial networks for a systemic circular economy transition in an intermediate Global South city</h3><div class="pub-authors">Valencia, M., Craps, M., Yepez, M., &amp; Solíz, M.F.</div><div class="pub-journal">Journal of Cleaner Production, Nov 2024</div><a href="https://www.sciencedirect.com/science/article/abs/pii/S0959652624037065" target="_blank" rel="noopener">ScienceDirect →</a></div></div>
-    <div class="pub-item"><div class="pub-year">2024</div><div><h3>A gender perspective on the circular economy: A literature review and research agenda</h3><div class="pub-authors">Palm, J., Lazoroska, D., Valencia, M., Bocken, N., &amp; Södergren, K.</div></div></div>
+    <div class="pub-item"><div class="pub-year">2024</div><div><h3>A gender perspective on the circular economy: A literature review and research agenda</h3><div class="pub-authors">Palm, J., Lazoroska, D., Valencia, M., Bocken, N., &amp; Södergren, K.</div><div class="pub-journal">Journal of Industrial Ecology, 28, 1670–1683</div><a href="https://doi.org/10.1111/jiec.13554" target="_blank" rel="noopener">Journal of Industrial Ecology →</a></div></div>
     <div class="pub-item"><div class="pub-year">2024</div><div><h3>Huella Verde: reusar es más circular</h3><div class="pub-authors">Valencia, M. &amp; Garzón, A.</div><div class="pub-journal">In: América Latina Circular, avanzando hacia el desarrollo sostenible. Eds. Henríquez-Aravena, A. y Martínez-Cerna, L.</div><a href="https://www.huellaverde.com.ec/wp-content/uploads/2024/09/Am_rica_Latina_Circular_1724351279.pdf" target="_blank" rel="noopener">Download PDF →</a></div></div>
-    <div class="pub-item"><div class="pub-year">2024</div><div><h3>Potential and Gaps of Sociomaterial Networks in the Global South to Transition to a Circular Economy</h3><div class="pub-authors">Valencia, M., Solíz, M.F., Yepez, M., &amp; Craps, M.</div></div></div>
+    <div class="pub-item"><div class="pub-year">2024</div><div><h3>Potential and Gaps of Sociomaterial Networks in the Global South to Transition to a Circular Economy</h3><div class="pub-authors">Valencia, M., Solíz, M.F., Yepez, M., &amp; Craps, M.</div><div class="pub-journal">Academy of Management Proceedings, 2024</div><a href="https://doi.org/10.5465/AMPROC.2024.21468abstract" target="_blank" rel="noopener">Academy of Management →</a></div></div>
     <div class="pub-item"><div class="pub-year">2023</div><div><h3>The social contribution of the circular economy</h3><div class="pub-authors">Valencia, M., Bocken, N., Loaiza, C., &amp; De Jaeger, S.</div><div class="pub-journal">Journal of Cleaner Production, 408, 137082</div><a href="https://www.sciencedirect.com/science/article/pii/S0959652623012404" target="_blank" rel="noopener">ScienceDirect →</a></div></div>
-    <div class="pub-item"><div class="pub-year">2023</div><div><h3>Waste picking as social provisioning: The case for a fair transition to a circular economy</h3><div class="pub-authors">Valencia, M., Solíz, M.F., &amp; Yépez, M.</div><div class="pub-journal">Journal of Cleaner Production, 398, 136646</div></div></div>
+    <div class="pub-item"><div class="pub-year">2023</div><div><h3>Waste picking as social provisioning: The case for a fair transition to a circular economy</h3><div class="pub-authors">Valencia, M., Solíz, M.F., &amp; Yépez, M.</div><div class="pub-journal">Journal of Cleaner Production, 398, 136646</div><a href="https://doi.org/10.1016/j.jclepro.2023.136646" target="_blank" rel="noopener">Journal of Cleaner Production →</a></div></div>
     <div class="pub-item"><div class="pub-year">2021</div><div><h3>Libro Blanco de Economía Circular Ecuador</h3><div class="pub-authors">Valencia, M. et al. — MPCEIP &amp; GIZ</div><div class="pub-journal" id="pub-wb-journal">National Policy Document · Ecuador</div><a href="https://www.researchgate.net/publication/368365628_Libro_Blanco_de_Economia_Circular_Ecuador_Circular_Economy_White_Book_Ecuador" target="_blank" rel="noopener">ResearchGate →</a></div></div>
     <div class="pub-item"><div class="pub-year" id="pub-all-year">All</div><div><h3 id="pub-all-h3">View all 16+ publications (360+ citations)</h3><a href="https://scholar.google.com/citations?user=dlTRpisAAAAJ&hl=en" target="_blank" rel="noopener">Google Scholar →</a></div></div>
   </div>
@@ -336,6 +340,12 @@ footer a:hover { color: var(--gold); }
     <h2 class="section-title" id="media-title">Talks, stories &amp; features</h2>
   </div>
   <div class="media-grid">
+    <div class="media-card">
+      <div class="media-type">Fellowship</div>
+      <h3>ASU-Leonardo Imagination Fellow</h3>
+      <p id="mc5-p">Selected by ASU's Center for Science and the Imagination to explore art-science innovation for sustainability. Developed the Mycorrhiza Project blending biomimicry, circular economy, and storytelling with waste picker communities.</p>
+      <a href="https://csi.asu.edu/fellows/leonardo-fellows/" target="_blank" rel="noopener" id="mc5-link">View fellowship →</a>
+    </div>
     <div class="media-card">
       <div class="media-type" id="mc1-type">Feature</div>
       <h3>Mongabay — Fungi as palm oil alternative</h3>
@@ -358,12 +368,6 @@ footer a:hover { color: var(--gold); }
       <div class="media-type" id="mc4-type">Creative Writing</div>
       <h3 id="mc4-h3">Poetry &amp; Mycorrhiza Project</h3>
       <p id="mc4-p">Published poet. The Mycorrhiza Project explores relational networks in circular care.</p>
-    </div>
-    <div class="media-card">
-      <div class="media-type">Fellowship</div>
-      <h3>ASU-Leonardo Imagination Fellow</h3>
-      <p id="mc5-p">Selected by ASU's Center for Science and the Imagination to explore art-science innovation for sustainability. Developed the Mycorrhiza Project blending biomimicry, circular economy, and storytelling with waste picker communities.</p>
-      <a href="https://csi.asu.edu/fellows/leonardo-fellows/" target="_blank" rel="noopener" id="mc5-link">View fellowship →</a>
     </div>
   </div>
 </section>
@@ -398,7 +402,7 @@ footer a:hover { color: var(--gold); }
     <span class="consult-tag">Keynote Speaking</span>
   </div>
   <p id="cta-p">I work with international organizations, governments, startups, and academic institutions to design circular economy solutions centering social justice and community resilience across Latin America and the Global South.</p>
-  <a href="/cdn-cgi/l/email-protection#472a222b242e3524322b263507202a262e2b6924282a" class="cta-btn" id="cta-btn-text">Get in touch</a>
+  <a href="/cdn-cgi/l/email-protection#8ee3ebe2ede7fcedfbe2effccee9e3efe7e2a0ede1e3" class="cta-btn" id="cta-btn-text">Get in touch</a>
 </section>
 
 <!-- ══════ FOOTER ══════ -->
@@ -417,7 +421,8 @@ var TR = {
   'hero-eyebrow': ['Circular Economy · Climate · Social Innovation', 'Economía Circular · Clima · Innovación Social'],
   'hero-h1': ['Melanie Valencia<br><em>Closing loops,</em><br>opening futures', 'Melanie Valencia<br><em>Cerrando ciclos,</em><br>abriendo futuros'],
   'hero-desc': ['Senior circular economy and climate change consultant and researcher bridging environmental sciences, economics, and social justice to build inclusive circular economies in Latin America and beyond.', 'Consultora e investigadora senior en economía circular y cambio climático que une ciencias ambientales, economía y justicia social para construir economías circulares inclusivas en América Latina y el mundo.'],
-  'badge-multi': ['Multilateral Consulting', 'Consultoría para Multilaterales'],
+  'badge-multi': ['Multilateral Consulting', 'Consultoría para multilaterales'],
+  'badge-acad': ['Academic &amp; Artivist', 'Académica y Artivista'],
   'hero-pubs': ['Publications', 'Publicaciones'],
   'nav-about': ['About', 'Sobre mí'],
   'nav-exp': ['Experience', 'Experiencia'],
@@ -430,7 +435,7 @@ var TR = {
   'about-p1': ['Originally from <strong>Ambato, Ecuador</strong>, I am a circular economy consultant and researcher working at the intersection of environmental sciences, climate change, and social innovation. My career spans international development consulting, academic research, and biotech entrepreneurship — all guided by the conviction that sustainability must be inclusive to be real.', 'Originaria de <strong>Ambato, Ecuador</strong>, soy consultora e investigadora en economía circular trabajando en la intersección de ciencias ambientales, cambio climático e innovación social. Mi carrera abarca consultoría para el desarrollo internacional, investigación académica y emprendimiento en biotecnología — todo guiado por la convicción de que la sostenibilidad debe ser inclusiva para ser real.'],
   'about-p2': ['My PhD at <strong>KU Leuven</strong> (Belgium) explored the social determinants of the circular economy, focusing on how informal recyclers and waste pickers — particularly women — can be included in circular economy models across Latin America.', 'Mi doctorado en <strong>KU Leuven</strong> (Bélgica) exploró los determinantes sociales de la economía circular, enfocándose en cómo los recicladores informales — particularmente mujeres — pueden ser incluidos en modelos de economía circular en América Latina.'],
   'about-p3': ['Today I consult for <strong>GIZ</strong> and the <strong>Inter-American Development Bank</strong> on circular economy strategy, bioeconomy in the Amazon, and climate adaptation. I have also consulted for several multilateral organizations and NGOs including <strong>WIEGO, UNIDO, FAO, and WWF</strong>. I lecture at <strong>Universidad San Francisco de Quito</strong>, serve as a thesis supervisor at the <strong>University of Cambridge CISL</strong> since 2024, and am a co-founding member of the <strong><a href=\"https://www.alianzabasuracero.ec\" target=\"_blank\" rel=\"noopener\">Zero Waste Alliance in Ecuador</a></strong> since 2019. Beyond consulting and research, I am a storyteller — selected by The Moth for a bilingual storytelling course — and a published poet. I also served as a <strong>Project Drawdown</strong> research fellow, estimating the impact of scaling existing climate solutions.', 'Actualmente soy consultora para <strong>GIZ</strong> y el <strong>Banco Interamericano de Desarrollo (BID)</strong> en estrategia de economía circular, bioeconomía amazónica y adaptación al cambio climático. También he consultado para varias organizaciones multilaterales y ONGs incluyendo <strong>WIEGO, UNIDO, FAO y WWF</strong>. Soy profesora en la <strong>Universidad San Francisco de Quito</strong>, supervisora de tesis en la <strong>University of Cambridge CISL</strong> desde 2024, y miembro co-fundadora de la <strong><a href=\"https://www.alianzabasuracero.ec\" target=\"_blank\" rel=\"noopener\">Alianza Basura Cero Ecuador</a></strong> desde 2019. También fui investigadora de <strong>Project Drawdown</strong>, estimando el impacto de escalar soluciones climáticas existentes.'],
-  'about-p4': ['Earlier in my career, I co-founded CarboCycle at Columbia University, developing technology to produce palm oil substitutes from organic waste via precision fermentation. The venture was later <a href="https://insempra.bio" target="_blank" rel="noopener">acquired by Insempra.bio</a>, where the technology continues to scale sustainable ingredients for the cosmetics and food industries.', 'Al inicio de mi carrera, co-fundé CarboCycle en Columbia University, desarrollando tecnología para producir sustitutos del aceite de palma a partir de residuos orgánicos mediante fermentación de precisión. La empresa fue posteriormente <a href="https://insempra.bio" target="_blank" rel="noopener">adquirida por Insempra.bio</a>, donde la tecnología continúa escalando ingredientes sostenibles.'],
+  'about-p4': ['Earlier in my career, I co-founded CarboCycle at Columbia University, developing technology to produce palm oil substitutes from organic waste via precision fermentation. The venture was later <a href="https://insempra.bio" target="_blank" rel="noopener">acquired by Insempra.bio</a>, where the technology continues to scale sustainable ingredients for the cosmetics and food industries. This work earned me recognition as one of MIT Technology Review\'s Innovators Under 35.', 'Al inicio de mi carrera, co-fundé CarboCycle en Columbia University, desarrollando tecnología para producir sustitutos del aceite de palma a partir de residuos orgánicos mediante fermentación de precisión. La empresa fue posteriormente <a href="https://insempra.bio" target="_blank" rel="noopener">adquirida por Insempra.bio</a>, donde la tecnología continúa escalando ingredientes sostenibles. Este trabajo me valió el reconocimiento como una de las Innovadoras Menores de 35 de MIT Technology Review.'],
   'about-p5': ['I am closing loops for the future of my kids, Navi and Nina.', 'Estoy cerrando ciclos por el futuro de mis hijos, Navi y Nina.'],
   'sidebar-edu': ['Education', 'Educación'],
   'sidebar-lang': ['Languages', 'Idiomas'],
@@ -449,7 +454,7 @@ var TR = {
   'pc2-link': ['View research →', 'Ver investigación →'],
   'pc3-tag': ['Climate · IDB', 'Clima · BID'],
   'pc3-h3': ['Amazon Bioeconomy', 'Bioeconomía Amazónica'],
-  'pc3-p': ['Consulting on bioeconomy ventures supporting indigenous communities with sustainable business plans that value natural capital and deliver climate benefits.', 'Consultoría en bioeconomía apoyando comunidades indígenas con planes de negocio sostenibles que valoran el capital natural y generan beneficios climáticos.'],
+  'pc3-p': ['Scouting and designing projects with bioeconomy ventures supporting indigenous communities with sustainable business plans that deliver climate benefits.', 'Búsqueda y diseño de proyectos con emprendimientos de bioeconomía apoyando comunidades indígenas con planes de negocio sostenibles que generan beneficios climáticos.'],
   'pc3-link': ['Learn more →', 'Saber más →'],
   'pc4-tag': ['Climate · Research', 'Clima · Investigación'],
   'pc4-p': ['Research fellowship modeling the impact of scaling climate solutions — contributing to the most comprehensive plan to reverse global warming.', 'Beca de investigación modelando el impacto de escalar soluciones climáticas — contribuyendo al plan más completo para revertir el calentamiento global.'],
@@ -512,6 +517,15 @@ function setLang(lang) {
   document.documentElement.lang = lang;
   document.getElementById('btnEN').classList.toggle('active', lang === 'en');
   document.getElementById('btnES').classList.toggle('active', lang === 'es');
+  // Hero language buttons
+  var hEN = document.getElementById('heroEN');
+  var hES = document.getElementById('heroES');
+  if (hEN && hES) {
+    hEN.style.background = lang === 'en' ? 'var(--accent-dark)' : 'none';
+    hEN.style.color = lang === 'en' ? 'var(--cream)' : 'var(--fg-muted)';
+    hES.style.background = lang === 'es' ? 'var(--accent-dark)' : 'none';
+    hES.style.color = lang === 'es' ? 'var(--cream)' : 'var(--fg-muted)';
+  }
   document.title = lang === 'es'
     ? 'Melanie Valencia, PhD — Consultora en Economía Circular | América Latina'
     : 'Melanie Valencia, PhD — Circular Economy Consultant & Researcher | Latin America';
@@ -540,9 +554,17 @@ document.querySelectorAll('.nav-links a').forEach(function(a) {
   a.addEventListener('click', function() { document.getElementById('navLinks').classList.remove('open'); });
 });
 
-// FAQ accordion
-document.querySelectorAll('.faq-q').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var item = btn.parentElement;
-    var wasOpen = item.classList.contains('open');
-    document.querySelectorA
+// FAQ accordion — using event delegation so it survives translation swaps
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.faq-q');
+  if (!btn) return;
+  var item = btn.parentElement;
+  var wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(function(i) { i.classList.remove('open'); });
+  if (!wasOpen) item.classList.add('open');
+});
+
+// Protect email from scrapers — set it via JS
+(function() {
+  var u = 'melcircular';
+  var
