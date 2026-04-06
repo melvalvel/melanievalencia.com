@@ -207,7 +207,7 @@ footer a:hover { color: var(--gold); }
     <h1 id="hero-h1">Melanie Valencia<br><em>Closing loops,</em><br>opening futures</h1>
     <p class="hero-desc" id="hero-desc">Senior circular economy and climate change consultant and researcher bridging environmental sciences, economics, and social justice to build inclusive circular economies in Latin America and beyond.</p>
     <div class="hero-badges">
-      <span class="badge highlight">PhD KU Leuven</span>
+      <span class="badge">PhD KU Leuven</span>
       <span class="badge">MPH Columbia University</span>
       <span class="badge" id="badge-multi">Consultoría para multilaterales</span>
       <span class="badge" id="badge-acad">Académica y Artivista</span>
@@ -402,7 +402,7 @@ footer a:hover { color: var(--gold); }
     <span class="consult-tag">Keynote Speaking</span>
   </div>
   <p id="cta-p">I work with international organizations, governments, startups, and academic institutions to design circular economy solutions centering social justice and community resilience across Latin America and the Global South.</p>
-  <a href="/cdn-cgi/l/email-protection#8ee3ebe2ede7fcedfbe2effccee9e3efe7e2a0ede1e3" class="cta-btn" id="cta-btn-text">Get in touch</a>
+  <a href="#" class="cta-btn" id="cta-btn-text" onclick="window.location='mai'+'lto:'+'melcircular'+'@'+'gmail.com';return false;">Get in touch</a>
 </section>
 
 <!-- ══════ FOOTER ══════ -->
@@ -415,7 +415,7 @@ footer a:hover { color: var(--gold); }
   </nav>
 </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // ── BILINGUAL: JS-only approach ──
 var TR = {
   'hero-eyebrow': ['Circular Economy · Climate · Social Innovation', 'Economía Circular · Clima · Innovación Social'],
@@ -566,5 +566,14 @@ document.addEventListener('click', function(e) {
 
 // Protect email from scrapers — set it via JS
 (function() {
-  var u = 'melcircular';
-  var
+  var btn = document.getElementById('cta-btn-text');
+  if (btn) {
+    btn.onclick = function() {
+      window.location = 'mai' + 'lto:' + 'melcircular' + '@' + 'gmail.com';
+      return false;
+    };
+  }
+})();
+</script>
+</body>
+</html>
