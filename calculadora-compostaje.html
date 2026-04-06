@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculadora Financiera — Compostaje Comunitario Quito</title>
+<meta name="description" content="Herramienta gratuita para calcular costos, punto de equilibrio y rentabilidad de emprendimientos de compostaje en Quito.">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -12,54 +13,41 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:linear-gradient(170deg,#FFF8E7 0%,#F0E8D5 40%,#E8DFC8 100%);color:#3E2723;min-height:100vh}
 input,select,textarea,button{font-family:inherit}
-input[type=number]::-webkit-inner-spin-button{opacity:1}
-:root{--earth:#2D5016;--earthL:#3A6B1E;--leaf:#5B8C2A;--lime:#A4D65E;--cream:#FFF8E7;--warm:#F5E6C8;--bark:#5C3D2E;--barkL:#7A5642;--soil:#3E2723;--amber:#E8A317;--danger:#C0392B;--success:#27AE60;--white:#FFFFFF;--ghost:rgba(45,80,22,0.06)}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useMemo,useEffect,useCallback}=React;
+const {useState,useMemo,useCallback}=React;
+
+// ══════════════════════════════════════════
+// CONFIGURACIÓN: Pega aquí tu URL de Google Apps Script
+// ══════════════════════════════════════════
+const GOOGLE_SCRIPT_URL = ""; // ← PEGA TU URL AQUÍ
+// ══════════════════════════════════════════
+
 const C={earth:"#2D5016",earthL:"#3A6B1E",leaf:"#5B8C2A",lime:"#A4D65E",cream:"#FFF8E7",warm:"#F5E6C8",bark:"#5C3D2E",barkL:"#7A5642",soil:"#3E2723",amber:"#E8A317",danger:"#C0392B",success:"#27AE60",white:"#FFFFFF",ghost:"rgba(45,80,22,0.06)"};
-const f$=(v)=>`$${Number(v).toFixed(2)}`;
-const fN=(v)=>Number(v).toLocaleString("es-EC",{maximumFractionDigits:1});
-
+const f$=v=>`$${Number(v).toFixed(2)}`;
+const fN=v=>Number(v).toLocaleString("es-EC",{maximumFractionDigits:1});
 const FREQ=[{value:4,label:"1 vez por semana"},{value:2,label:"Cada 2 semanas"},{value:1,label:"1 vez al mes"}];
-
-const CERT_OPTIONS=[
-  {id:"gad_quito",label:"Registro GAD Quito (Gestión de Residuos)",checked:true,valor:100,amortAnios:3},
-  {id:"luae",label:"LUAE (Licencia Única Actividades Económicas)",checked:true,valor:80,amortAnios:1},
-  {id:"licencia_ambiental",label:"Licencia Ambiental (MAE/MAATE)",checked:false,valor:250,amortAnios:5},
-  {id:"iso14001",label:"ISO 14001 (Gestión Ambiental)",checked:false,valor:1500,amortAnios:3},
-  {id:"bpm",label:"Buenas Prácticas de Manufactura (BPM)",checked:false,valor:400,amortAnios:3},
-  {id:"organico",label:"Certificación de Producción Orgánica",checked:false,valor:600,amortAnios:2},
-  {id:"economia_circular",label:"Sello Economía Circular Ecuador",checked:false,valor:300,amortAnios:3},
-  {id:"bcorp",label:"Certificación B Corp",checked:false,valor:2000,amortAnios:3},
+const TRANS=[{value:"vehiculo",label:"Vehículo propio"},{value:"moto",label:"Moto"},{value:"bicicargo",label:"Bici-cargo"},{value:"publico",label:"Transporte público"},{value:"mixto",label:"Mixto (vehículo + bus)"}];
+const CERTS_DEF=[
+  {id:"gad",label:"Registro GAD Quito (Gestión de Residuos)",on:true,valor:100,anios:3},
+  {id:"luae",label:"LUAE (Licencia Única Actividades Económicas)",on:true,valor:80,anios:1},
+  {id:"lic_amb",label:"Licencia Ambiental (MAATE)",on:false,valor:250,anios:5},
+  {id:"iso",label:"ISO 14001 (Gestión Ambiental)",on:false,valor:1500,anios:3},
+  {id:"bpm",label:"Buenas Prácticas de Manufactura",on:false,valor:400,anios:3},
+  {id:"organico",label:"Certificación Producción Orgánica",on:false,valor:600,anios:2},
+  {id:"circular",label:"Sello Economía Circular Ecuador",on:false,valor:300,anios:3},
+  {id:"bcorp",label:"Certificación B Corp",on:false,valor:2000,anios:3},
+];
+const INTANG_FIJOS=[
+  {id:"ruc",nombre:"Constitución empresa / RUC",valor:200,anios:5,on:true},
+  {id:"marca",nombre:"Diseño de marca / logo / web",valor:300,anios:5,on:true},
+  {id:"capac",nombre:"Capacitación inicial",valor:100,anios:3,on:true},
 ];
 
-const TRANSPORT_TYPES=[
-  {value:"vehiculo",label:"Vehículo propio (gasolina/diesel)"},
-  {value:"moto",label:"Moto"},
-  {value:"bicicargo",label:"Bici-cargo"},
-  {value:"publico",label:"Transporte público"},
-  {value:"mixto",label:"Mixto (vehículo + bus)"},
-];
-
-const DEFAULT_ASSETS=[
-  {id:1,nombre:"Bici-cargo / vehículo",valor:3000,vidaAnios:5,residual:600},
-  {id:2,nombre:"Compostera / equipos",valor:800,vidaAnios:5,residual:0},
-  {id:3,nombre:"Herramientas",valor:300,vidaAnios:3,residual:0},
-  {id:4,nombre:"Baldes iniciales (lote)",valor:400,vidaAnios:2,residual:0},
-  {id:5,nombre:"Adecuación del espacio",valor:500,vidaAnios:5,residual:0},
-];
-
-const INTANGIBLE_FIXED=[
-  {id:"constitucion",nombre:"Constitución empresa / RUC",valor:200,amortAnios:5},
-  {id:"marca",nombre:"Diseño de marca / logo / web",valor:300,amortAnios:5},
-  {id:"capacitacion",nombre:"Capacitación inicial del equipo",valor:100,amortAnios:3},
-];
-
-// ─── Components ───
+// ─── UI Components ───
 function Inp({label,value,onChange,unit,hint,min=0,step=1,max,disabled}){
   return <div style={{marginBottom:16}}>
     <label style={{display:"block",fontSize:13,fontWeight:600,color:C.bark,marginBottom:4}}>{label}</label>
@@ -72,7 +60,7 @@ function Inp({label,value,onChange,unit,hint,min=0,step=1,max,disabled}){
   </div>;
 }
 function Txt({label,value,onChange,hint,placeholder,multiline}){
-  const s={width:"100%",padding:"10px 12px",border:`1.5px solid ${C.warm}`,borderRadius:10,fontSize:14,fontFamily:"'DM Sans',sans-serif",color:C.soil,background:C.white,outline:"none",resize:"vertical"};
+  const s={width:"100%",padding:"10px 12px",border:`1.5px solid ${C.warm}`,borderRadius:10,fontSize:14,color:C.soil,background:C.white,outline:"none",resize:"vertical",boxSizing:"border-box"};
   return <div style={{marginBottom:16}}>
     <label style={{display:"block",fontSize:13,fontWeight:600,color:C.bark,marginBottom:4}}>{label}</label>
     {multiline?<textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={3} style={s}/>
@@ -94,12 +82,12 @@ function Sec({title,icon,children,accent=C.earth}){
   return <div style={{background:C.white,borderRadius:16,padding:"24px 22px",marginBottom:20,border:`1px solid ${C.warm}`,boxShadow:"0 2px 12px rgba(45,80,22,0.06)"}}>
     <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18}}>
       <span style={{fontSize:22}}>{icon}</span>
-      <h3 style={{margin:0,fontSize:16,fontWeight:700,color:accent,fontFamily:"'Playfair Display',serif",letterSpacing:0.3}}>{title}</h3>
+      <h3 style={{margin:0,fontSize:16,fontWeight:700,color:accent,fontFamily:"'Playfair Display',serif"}}>{title}</h3>
     </div>{children}
   </div>;
 }
 function MC({label,value,sub,color=C.earth,large}){
-  return <div style={{background:`linear-gradient(135deg,${color}11 0%,${color}08 100%)`,borderRadius:14,padding:large?"20px 18px":"14px 14px",border:`1px solid ${color}22`,flex:1,minWidth:140}}>
+  return <div style={{background:`linear-gradient(135deg,${color}11,${color}08)`,borderRadius:14,padding:large?"20px 18px":"14px",border:`1px solid ${color}22`,flex:1,minWidth:140}}>
     <div style={{fontSize:11,color:C.barkL,fontWeight:600,marginBottom:4,textTransform:"uppercase",letterSpacing:0.8}}>{label}</div>
     <div style={{fontSize:large?26:20,fontWeight:700,color,fontFamily:"'DM Mono',monospace"}}>{value}</div>
     {sub&&<div style={{fontSize:11,color:C.barkL,marginTop:2}}>{sub}</div>}
@@ -110,7 +98,7 @@ function BC({data,color=C.leaf,height=160}){
   return <div style={{display:"flex",alignItems:"flex-end",gap:6,height,padding:"0 4px"}}>
     {data.map((d,i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%"}}>
       <div style={{flex:1,width:"100%",display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-        <div style={{width:"70%",maxWidth:48,height:`${Math.max((d.value/mx)*100,2)}%`,background:d.hl?C.amber:`linear-gradient(180deg,${color} 0%,${color}BB 100%)`,borderRadius:"6px 6px 2px 2px",transition:"height 0.5s",position:"relative"}}>
+        <div style={{width:"70%",maxWidth:48,height:`${Math.max((d.value/mx)*100,2)}%`,background:d.hl?C.amber:`linear-gradient(180deg,${color},${color}BB)`,borderRadius:"6px 6px 2px 2px",position:"relative"}}>
           <span style={{position:"absolute",top:-18,left:"50%",transform:"translateX(-50%)",fontSize:9,fontWeight:600,color:C.bark,whiteSpace:"nowrap",fontFamily:"'DM Mono',monospace"}}>{f$(d.value)}</span>
         </div>
       </div>
@@ -118,21 +106,19 @@ function BC({data,color=C.leaf,height=160}){
     </div>)}
   </div>;
 }
-function PB({value,max,label,color=C.leaf}){
+function PB({value,max,label,color}){
   const p=Math.min((value/max)*100,100);
   return <div style={{marginBottom:12}}>
     <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}>
       <span style={{color:C.bark,fontWeight:600}}>{label}</span><span style={{color:C.barkL}}>{fN(p)}%</span>
     </div>
-    <div style={{height:8,background:C.ghost,borderRadius:4,overflow:"hidden"}}>
-      <div style={{width:`${p}%`,height:"100%",background:color,borderRadius:4,transition:"width 0.5s"}}/>
-    </div>
+    <div style={{height:8,background:C.ghost,borderRadius:4,overflow:"hidden"}}><div style={{width:`${p}%`,height:"100%",background:color,borderRadius:4}}/></div>
   </div>;
 }
 function IB({children,color=C.earth}){
   return <div style={{background:`${color}0A`,borderRadius:10,padding:"10px 14px",marginBottom:12,border:`1px dashed ${color}30`,fontSize:12,color:C.barkL,lineHeight:1.6}}>{children}</div>;
 }
-function AssetCard({a,onChange,onRemove,showResidual}){
+function AssetCard({a,onChange,onRemove,showRes}){
   const dep=a.vidaAnios>0?Math.max(a.valor-(a.residual||0),0)/(a.vidaAnios*12):0;
   return <div style={{background:C.ghost,borderRadius:10,padding:"10px 12px 8px",marginBottom:8,position:"relative"}}>
     <button onClick={onRemove} style={{position:"absolute",top:8,right:8,width:24,height:24,border:"none",borderRadius:6,background:`${C.danger}15`,color:C.danger,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
@@ -142,67 +128,61 @@ function AssetCard({a,onChange,onRemove,showResidual}){
           style={{width:"100%",padding:"7px 10px",border:`1.5px solid ${C.warm}`,borderRadius:8,fontSize:13,color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
       </div>
       <div style={{marginBottom:8}}>
-        <label style={{display:"block",fontSize:10,fontWeight:600,color:C.barkL,marginBottom:2}}>Costó $</label>
+        <label style={{fontSize:10,fontWeight:600,color:C.barkL}}>Costó $</label>
         <input type="number" value={a.valor} min={0} onChange={e=>onChange({...a,valor:Number(e.target.value)})}
           style={{width:"100%",padding:"7px 8px",border:`1.5px solid ${C.warm}`,borderRadius:8,fontSize:13,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",textAlign:"right",boxSizing:"border-box"}}/>
       </div>
       <div style={{marginBottom:8}}>
-        <label style={{display:"block",fontSize:10,fontWeight:600,color:C.barkL,marginBottom:2}}>¿Cuánto dura?</label>
+        <label style={{fontSize:10,fontWeight:600,color:C.barkL}}>¿Cuánto dura?</label>
         <select value={a.vidaAnios} onChange={e=>onChange({...a,vidaAnios:Number(e.target.value)})}
           style={{width:"100%",padding:"7px 6px",border:`1.5px solid ${C.warm}`,borderRadius:8,fontSize:12,color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}>
           {[1,2,3,4,5,7,10].map(y=><option key={y} value={y}>{y} año{y>1?"s":""}</option>)}
         </select>
       </div>
-      {showResidual&&<div style={{gridColumn:"1/-1",marginBottom:6}}>
-        <label style={{display:"block",fontSize:10,fontWeight:600,color:C.barkL,marginBottom:2}}>¿En cuánto podrías venderlo al final? (valor residual)</label>
+      {showRes&&<div style={{gridColumn:"1/-1",marginBottom:6}}>
+        <label style={{fontSize:10,fontWeight:600,color:C.barkL}}>¿En cuánto podrías venderlo al final?</label>
         <input type="number" value={a.residual||0} min={0} max={a.valor} onChange={e=>onChange({...a,residual:Math.min(Number(e.target.value),a.valor)})}
           style={{width:"100%",padding:"7px 8px",border:`1.5px solid ${C.warm}`,borderRadius:8,fontSize:13,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",textAlign:"right",boxSizing:"border-box"}}/>
-        <span style={{fontSize:10,color:C.barkL}}>Déjalo en 0 si no sabes. Vehículos: ~20-30% del valor original.</span>
+        <span style={{fontSize:10,color:C.barkL}}>0 si no tiene reventa. Vehículos: ~20-30%.</span>
       </div>}
     </div>
-    <div style={{fontSize:11,color:C.barkL,borderTop:`1px dashed ${C.warm}`,paddingTop:4,marginTop:2,display:"flex",justifyContent:"space-between"}}>
-      <span>{a.nombre||"—"}{(a.residual||0)>0?` (reventa: ${f$(a.residual)})`:""}</span>
+    <div style={{fontSize:11,color:C.barkL,borderTop:`1px dashed ${C.warm}`,paddingTop:4,display:"flex",justifyContent:"space-between"}}>
+      <span>{a.nombre||"—"}</span>
       <span>Desgaste: <strong style={{color:C.earth}}>{f$(Math.max(dep,0))}/mes</strong></span>
     </div>
   </div>;
 }
-
-// Tier card for hogares/empresas
-function TierCard({tier,onChange,onRemove,nameLabel,nameField,countLabel}){
+function TierCard({t,onChange,onRemove,nLabel,nField,cLabel}){
   return <div style={{background:C.ghost,borderRadius:12,padding:"14px 14px 8px",marginBottom:12,position:"relative"}}>
     <button onClick={onRemove} style={{position:"absolute",top:10,right:10,width:26,height:26,border:"none",borderRadius:6,background:`${C.danger}15`,color:C.danger,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 12px"}}>
       <div style={{gridColumn:"1/-1",marginBottom:10}}>
-        <label style={{display:"block",fontSize:11,fontWeight:600,color:C.barkL,marginBottom:3}}>{nameLabel}</label>
-        <input type="text" value={tier[nameField]} placeholder="Ej: Plan semanal..." onChange={e=>onChange({...tier,[nameField]:e.target.value})}
+        <label style={{fontSize:11,fontWeight:600,color:C.barkL,marginBottom:3,display:"block"}}>{nLabel}</label>
+        <input type="text" value={t[nField]} placeholder="Ej: Semanal, Restaurantes..." onChange={e=>onChange({...t,[nField]:e.target.value})}
           style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${C.warm}`,borderRadius:8,fontSize:13,color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
       </div>
+      {[{l:cLabel,k:"cantidad",s:1},{l:"Kg/recolección",k:"kgPorRecol",s:0.5}].map(f=>
+        <div key={f.k} style={{marginBottom:10}}>
+          <label style={{fontSize:11,fontWeight:600,color:C.barkL,marginBottom:3,display:"block"}}>{f.l}</label>
+          <input type="number" value={t[f.k]} min={0} step={f.s} onChange={e=>onChange({...t,[f.k]:Number(e.target.value)})}
+            style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${C.warm}`,borderRadius:8,fontSize:13,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
+        </div>)}
       <div style={{marginBottom:10}}>
-        <label style={{display:"block",fontSize:11,fontWeight:600,color:C.barkL,marginBottom:3}}>{countLabel}</label>
-        <input type="number" value={tier.cantidad} min={0} onChange={e=>onChange({...tier,cantidad:Number(e.target.value)})}
-          style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${C.warm}`,borderRadius:8,fontSize:13,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
-      </div>
-      <div style={{marginBottom:10}}>
-        <label style={{display:"block",fontSize:11,fontWeight:600,color:C.barkL,marginBottom:3}}>Kg / recolección</label>
-        <input type="number" value={tier.kgPorRecol} min={0} step={0.5} onChange={e=>onChange({...tier,kgPorRecol:Number(e.target.value)})}
-          style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${C.warm}`,borderRadius:8,fontSize:13,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
-      </div>
-      <div style={{marginBottom:10}}>
-        <label style={{display:"block",fontSize:11,fontWeight:600,color:C.barkL,marginBottom:3}}>Frecuencia</label>
-        <select value={tier.frecuencia} onChange={e=>onChange({...tier,frecuencia:Number(e.target.value)})}
+        <label style={{fontSize:11,fontWeight:600,color:C.barkL,marginBottom:3,display:"block"}}>Frecuencia</label>
+        <select value={t.frecuencia} onChange={e=>onChange({...t,frecuencia:Number(e.target.value)})}
           style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${C.warm}`,borderRadius:8,fontSize:12,color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}>
           {FREQ.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
       <div style={{marginBottom:10}}>
-        <label style={{display:"block",fontSize:11,fontWeight:600,color:C.barkL,marginBottom:3}}>Tarifa $/mes</label>
-        <input type="number" value={tier.tarifa} min={0} step={0.5} onChange={e=>onChange({...tier,tarifa:Number(e.target.value)})}
+        <label style={{fontSize:11,fontWeight:600,color:C.barkL,marginBottom:3,display:"block"}}>Tarifa $/mes</label>
+        <input type="number" value={t.tarifa} min={0} step={0.5} onChange={e=>onChange({...t,tarifa:Number(e.target.value)})}
           style={{width:"100%",padding:"8px 10px",border:`1.5px solid ${C.warm}`,borderRadius:8,fontSize:13,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
       </div>
     </div>
-    <div style={{fontSize:11,color:C.barkL,borderTop:`1px dashed ${C.warm}`,paddingTop:6,marginTop:2,display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:4}}>
-      <span>{tier.cantidad} × {fN(tier.kgPorRecol)}kg × {tier.frecuencia}x/mes = <strong style={{color:C.earth}}>{fN(tier.cantidad*tier.kgPorRecol*tier.frecuencia)} kg/mes</strong></span>
-      <span>Ingreso: <strong style={{color:C.earth}}>{f$(tier.cantidad*tier.tarifa)}/mes</strong></span>
+    <div style={{fontSize:11,color:C.barkL,borderTop:`1px dashed ${C.warm}`,paddingTop:6,display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:4}}>
+      <span>{t.cantidad}×{fN(t.kgPorRecol)}kg×{t.frecuencia}x = <strong style={{color:C.earth}}>{fN(t.cantidad*t.kgPorRecol*t.frecuencia)} kg/mes</strong></span>
+      <span><strong style={{color:C.earth}}>{f$(t.cantidad*t.tarifa)}/mes</strong></span>
     </div>
   </div>;
 }
@@ -210,532 +190,552 @@ function TierCard({tier,onChange,onRemove,nameLabel,nameField,countLabel}){
 const TABS=[{id:"costos",label:"Costos",icon:"📊"},{id:"ingresos",label:"Ingresos",icon:"💰"},{id:"resultados",label:"Resultados",icon:"🎯"},{id:"proyeccion",label:"Proyección",icon:"📈"}];
 
 function App(){
-  const [nombreEmpresa,setNombreEmpresa]=useState("");
-  const [contactoEmail,setContactoEmail]=useState("");
-  const [contactoTel,setContactoTel]=useState("");
-  const [submitted,setSubmitted]=useState(false);
+  const [nombre,setNombre]=useState("");
+  const [email,setEmail]=useState("");
+  const [tel,setTel]=useState("");
+  const [submitted,setSub]=useState(false);
+  const [sending,setSending]=useState(false);
+  const [sendError,setSendError]=useState("");
 
-  const [hogarTiers,setHogarTiers]=useState([
+  const [hTiers,setHT]=useState([
     {id:1,plan:"Semanal",cantidad:50,kgPorRecol:4,frecuencia:4,tarifa:10},
     {id:2,plan:"Quincenal",cantidad:25,kgPorRecol:5,frecuencia:2,tarifa:7},
     {id:3,plan:"Mensual",cantidad:10,kgPorRecol:6,frecuencia:1,tarifa:5},
   ]);
-  const [nxH,setNxH]=useState(4);
-  const [empresaTiers,setEmpresaTiers]=useState([
+  const [nxH,sNxH]=useState(4);
+  const [eTiers,setET]=useState([
     {id:1,tipo:"Restaurantes",cantidad:3,kgPorRecol:20,frecuencia:4,tarifa:40},
     {id:2,tipo:"Oficinas",cantidad:2,kgPorRecol:8,frecuencia:2,tarifa:20},
   ]);
-  const [nxE,setNxE]=useState(3);
+  const [nxE,sNxE]=useState(3);
 
-  const [numFijos,setNumFijos]=useState(1);
-  const [salarioFijo,setSalarioFijo]=useState(460);
-  const [numJornaleros,setNumJornaleros]=useState(2);
-  const [pagoJornalDia,setPagoJornalDia]=useState(20);
-  const [diasJornalMes,setDiasJornalMes]=useState(8);
+  const [numTC,setNumTC]=useState(1);
+  const [salTC,setSalTC]=useState(460);
+  const [numJ,setNumJ]=useState(2);
+  const [pagoJ,setPagoJ]=useState(20);
+  const [diasJ,setDiasJ]=useState(8);
 
-  const [arriendo,setArriendo]=useState(250);
-  const [costoAgua,setCostoAgua]=useState(15);
-  const [costoLuz,setCostoLuz]=useState(25);
-  const [permisos,setPermisos]=useState(30);
-  const [marketingCM,setMarketingCM]=useState(30);
-  const [marketingPauta,setMarketingPauta]=useState(20);
-  const [otrosFijos,setOtrosFijos]=useState(0);
-  const [otrosFijosDesc,setOtrosFijosDesc]=useState("");
+  const [arriendo,setArr]=useState(250);
+  const [agua,setAgua]=useState(15);
+  const [luz,setLuz]=useState(25);
+  const [mktCM,setMktCM]=useState(30);
+  const [mktPauta,setMktP]=useState(20);
+  const [otrosF,setOtrosF]=useState(0);
+  const [otrosFD,setOtrosFD]=useState("");
 
-  const [assets,setAssets]=useState(DEFAULT_ASSETS);
-  const [nxA,setNxA]=useState(6);
+  const [assets,setAssets]=useState([
+    {id:1,nombre:"Bici-cargo / vehículo",valor:3000,vidaAnios:5,residual:600},
+    {id:2,nombre:"Compostera / equipos",valor:800,vidaAnios:5,residual:0},
+    {id:3,nombre:"Herramientas",valor:300,vidaAnios:3,residual:0},
+    {id:4,nombre:"Baldes iniciales",valor:400,vidaAnios:2,residual:0},
+    {id:5,nombre:"Adecuación espacio",valor:500,vidaAnios:5,residual:0},
+  ]);
+  const [nxA,sNxA]=useState(6);
+  const [certs,setCerts]=useState(CERTS_DEF.map(c=>({...c})));
+  const [ccerts,setCCerts]=useState([]);
+  const [nxCC,sNxCC]=useState(1);
+  const [intFijos,setIF]=useState(INTANG_FIJOS.map(i=>({...i})));
+  const [capTrab,setCapTrab]=useState(1500);
 
-  // Certificaciones como intangibles
-  const [certs,setCerts]=useState(CERT_OPTIONS.map(c=>({...c})));
-  const [customCerts,setCustomCerts]=useState([]);
-  const [nxCC,setNxCC]=useState(1);
+  const [tipoTrans,setTipoTrans]=useState("bicicargo");
+  const [combustible,setComb]=useState(80);
+  const [transPub,setTransPub]=useState(0);
+  const [mantVeh,setMantVeh]=useState(40);
+  const [insumos,setInsumos]=useState(35);
+  const [baldes,setBaldes]=useState(20);
+  const [otrosV,setOtrosV]=useState(0);
 
-  // Fixed intangibles (no user-editable amort period)
-  const [fixedIntangibles,setFixedIntangibles]=useState(INTANGIBLE_FIXED.map(i=>({...i,activo:true})));
+  const [pctVenta,setPctV]=useState(60);
+  const [precioKg,setPrecioKg]=useState(0.40);
+  const [tasaConv,setTasaConv]=useState(30);
+  const [otrosIng,setOtrosIng]=useState(0);
+  const [tab,setTab]=useState("costos");
 
-  const [invCapitalTrabajo,setInvCapitalTrabajo]=useState(1500);
+  // CRUD helpers
+  const addH=()=>{setHT([...hTiers,{id:nxH,plan:"",cantidad:10,kgPorRecol:4,frecuencia:4,tarifa:8}]);sNxH(nxH+1);};
+  const addE=()=>{setET([...eTiers,{id:nxE,tipo:"",cantidad:1,kgPorRecol:10,frecuencia:4,tarifa:25}]);sNxE(nxE+1);};
+  const addA=()=>{setAssets([...assets,{id:nxA,nombre:"",valor:0,vidaAnios:3,residual:0}]);sNxA(nxA+1);};
+  const addCC=()=>{setCCerts([...ccerts,{id:nxCC,label:"",on:true,valor:0,anios:3}]);sNxCC(nxCC+1);};
 
-  const [tipoTransporte,setTipoTransporte]=useState("bicicargo");
-  const [combustible,setCombustible]=useState(80);
-  const [costoTransPublico,setCostoTransPublico]=useState(0);
-  const [mantenimientoVehiculo,setMantenimientoVehiculo]=useState(40);
-  const [insumosCompostaje,setInsumosCompostaje]=useState(35);
-  const [baldesContenedores,setBaldesContenedores]=useState(20);
-  const [otrosVariables,setOtrosVariables]=useState(0);
+  const servBas=agua+luz;
+  const mkt=mktCM+mktPauta;
+  const costoTrans=tipoTrans==="publico"?transPub:(combustible+(tipoTrans==="mixto"?transPub:0));
+  const mantV=tipoTrans==="publico"?0:mantVeh;
 
-  const [pctVentaCompost,setPctVentaCompost]=useState(60);
-  const [precioKgCompost,setPrecioKgCompost]=useState(0.40);
-  const [tasaConversion,setTasaConversion]=useState(30);
-  const [otrosIngresos,setOtrosIngresos]=useState(0);
-
-  const [activeTab,setActiveTab]=useState("costos");
-
-  const addH=()=>{setHogarTiers([...hogarTiers,{id:nxH,plan:"",cantidad:10,kgPorRecol:4,frecuencia:4,tarifa:8}]);setNxH(nxH+1);};
-  const updH=(id,u)=>setHogarTiers(hogarTiers.map(t=>t.id===id?u:t));
-  const rmH=(id)=>setHogarTiers(hogarTiers.filter(t=>t.id!==id));
-  const addE=()=>{setEmpresaTiers([...empresaTiers,{id:nxE,tipo:"",cantidad:1,kgPorRecol:10,frecuencia:4,tarifa:25}]);setNxE(nxE+1);};
-  const updE=(id,u)=>setEmpresaTiers(empresaTiers.map(t=>t.id===id?u:t));
-  const rmE=(id)=>setEmpresaTiers(empresaTiers.filter(t=>t.id!==id));
-  const addA=()=>{setAssets([...assets,{id:nxA,nombre:"",valor:0,vidaAnios:3,residual:0}]);setNxA(nxA+1);};
-  const updA=(id,u)=>setAssets(assets.map(a=>a.id===id?u:a));
-  const rmA=(id)=>setAssets(assets.filter(a=>a.id!==id));
-  const addCC=()=>{setCustomCerts([...customCerts,{id:nxCC,label:"",checked:true,valor:0,amortAnios:3}]);setNxCC(nxCC+1);};
-
-  const serviciosBasicos=costoAgua+costoLuz;
-  const marketing=marketingCM+marketingPauta;
-  const costoTransporte=tipoTransporte==="publico"?costoTransPublico:(combustible+(tipoTransporte==="mixto"?costoTransPublico:0));
-
-  const calc=useMemo(()=>{
-    const hogares=hogarTiers.reduce((s,t)=>s+t.cantidad,0);
-    const kgH=hogarTiers.reduce((s,t)=>s+t.cantidad*t.kgPorRecol*t.frecuencia,0);
-    const incH=hogarTiers.reduce((s,t)=>s+t.cantidad*t.tarifa,0);
-    const empCli=empresaTiers.reduce((s,t)=>s+t.cantidad,0);
-    const kgE=empresaTiers.reduce((s,t)=>s+t.cantidad*t.kgPorRecol*t.frecuencia,0);
-    const incE=empresaTiers.reduce((s,t)=>s+t.cantidad*t.tarifa,0);
+  // ═══ CÁLCULOS ═══
+  const R=useMemo(()=>{
+    // Clientes y kg
+    const hog=hTiers.reduce((s,t)=>s+t.cantidad,0);
+    const kgH=hTiers.reduce((s,t)=>s+t.cantidad*t.kgPorRecol*t.frecuencia,0);
+    const incH=hTiers.reduce((s,t)=>s+t.cantidad*t.tarifa,0);
+    const emp=eTiers.reduce((s,t)=>s+t.cantidad,0);
+    const kgE=eTiers.reduce((s,t)=>s+t.cantidad*t.kgPorRecol*t.frecuencia,0);
+    const incE=eTiers.reduce((s,t)=>s+t.cantidad*t.tarifa,0);
     const kgM=kgH+kgE;
-    const kgComp=kgM*(tasaConversion/100);
+    const kgComp=kgM*(tasaConv/100);
 
+    // Depreciación activos: (valor - residual) / vida
     const depM=assets.reduce((s,a)=>s+(a.vidaAnios>0?Math.max(a.valor-(a.residual||0),0)/(a.vidaAnios*12):0),0);
-    // Amortización: certs activas + custom certs + fixed intangibles
-    const certAmort=[...certs.filter(c=>c.checked),...customCerts.filter(c=>c.checked)].reduce((s,c)=>s+(c.amortAnios>0?c.valor/(c.amortAnios*12):0),0);
-    const fixAmort=fixedIntangibles.filter(i=>i.activo).reduce((s,i)=>s+(i.amortAnios>0?i.valor/(i.amortAnios*12):0),0);
-    const amortM=certAmort+fixAmort;
+
+    // Amortización: certificaciones activas + custom certs + intangibles fijos
+    const certAct=[...certs.filter(c=>c.on),...ccerts.filter(c=>c.on)];
+    const amortCert=certAct.reduce((s,c)=>s+(c.anios>0?c.valor/(c.anios*12):0),0);
+    const amortFijos=intFijos.filter(i=>i.on).reduce((s,i)=>s+(i.anios>0?i.valor/(i.anios*12):0),0);
+    const amortM=amortCert+amortFijos;
     const desgM=depM+amortM;
 
-    const invActivos=assets.reduce((s,a)=>s+a.valor,0);
-    const invIntang=[...certs.filter(c=>c.checked),...customCerts.filter(c=>c.checked)].reduce((s,c)=>s+c.valor,0)+fixedIntangibles.filter(i=>i.activo).reduce((s,i)=>s+i.valor,0);
-    const invTotal=invActivos+invIntang+invCapitalTrabajo;
+    // Inversiones
+    const invAct=assets.reduce((s,a)=>s+a.valor,0);
+    const invIntang=certAct.reduce((s,c)=>s+c.valor,0)+intFijos.filter(i=>i.on).reduce((s,i)=>s+i.valor,0);
+    const invT=invAct+invIntang+capTrab;
 
-    const iess=salarioFijo*numFijos*0.1115;
-    const totSal=salarioFijo*numFijos+iess;
-    const d13=(salarioFijo*numFijos)/12;
-    const d14=(460/12)*numFijos;
-    const fRes=(salarioFijo*numFijos)/12;
-    const vac=(salarioFijo*numFijos)/24;
+    // Mano de obra tiempo completo
+    const iess=salTC*numTC*0.1115;
+    const totSalTC=salTC*numTC+iess;
+    const d13=(salTC*numTC)/12;
+    const d14=(460/12)*numTC;
+    const fRes=(salTC*numTC)/12;
+    const vac=(salTC*numTC)/24;
     const benSoc=d13+d14+fRes+vac;
-    const costoTotFijos=totSal+benSoc;
-    const costoJorn=numJornaleros*pagoJornalDia*diasJornalMes;
-    const manoObra=costoTotFijos+costoJorn;
+    const costoTC=totSalTC+benSoc; // costo real tiempo completo
+    const costoJ=numJ*pagoJ*diasJ; // jornaleros
+    const mobraT=costoTC+costoJ;
 
-    const mantVeh=tipoTransporte==="publico"?0:mantenimientoVehiculo;
-    const cf=arriendo+manoObra+serviciosBasicos+permisos+desgM+marketing+otrosFijos;
-    const cv=costoTransporte+mantVeh+insumosCompostaje+baldesContenedores+otrosVariables;
+    // Costos fijos: arriendo + mano obra + servicios + desgaste&amort + marketing + otros
+    // NO incluye permisos como campo separado (ya están en certificaciones)
+    const cf=arriendo+mobraT+servBas+desgM+mkt+otrosF;
+
+    // Costos variables: transporte + mantenimiento + insumos + baldes + otros
+    const cv=costoTrans+mantV+insumos+baldes+otrosV;
+
     const costoT=cf+cv;
 
+    // Ingresos
     const incSusc=incH+incE;
-    const incComp=kgComp*(pctVentaCompost/100)*precioKgCompost;
-    const incTotal=incSusc+incComp+otrosIngresos;
+    const incComp=kgComp*(pctVenta/100)*precioKg;
+    const incTotal=incSusc+incComp+otrosIng;
 
+    // Resultados
     const uBruta=incTotal-costoT;
     const mBruto=incTotal>0?(uBruta/incTotal)*100:0;
     const partTrab=uBruta>0?uBruta*0.15:0;
-    const impR=incTotal*0.02;
+    const impR=incTotal*0.02; // RIMPE
     const uNeta=uBruta-partTrab-impR;
     const mNeto=incTotal>0?(uNeta/incTotal)*100:0;
 
-    const totalCli=hogares+empCli;
+    // Equilibrio
+    const totalCli=hog+emp;
     const costoPorCli=totalCli>0?costoT/totalCli:0;
     const tarifaProm=totalCli>0?incSusc/totalCli:0;
-    const tarifaEq=totalCli>0?(costoT-incComp-otrosIngresos)/totalCli:0;
-    const cliEq=tarifaProm>0?(costoT-incComp-otrosIngresos)/tarifaProm:0;
+    const tarifaEq=totalCli>0?(costoT-incComp-otrosIng)/totalCli:0;
+    const cliEq=tarifaProm>0?(costoT-incComp-otrosIng)/tarifaProm:0;
     const costoPorKg=kgM>0?costoT/kgM:0;
 
-    const mesRec=uNeta>0?invTotal/uNeta:Infinity;
-    const roi=invTotal>0?((uNeta*12)/invTotal)*100:0;
+    const mesRec=uNeta>0?invT/uNeta:Infinity;
+    const roi=invT>0?((uNeta*12)/invT)*100:0;
 
-    const proy=[];
-    let ac=-invTotal;
+    // Proyección
+    const proy=[];let ac=-invT;
     for(let m=1;m<=12;m++){
       const cr=1+(m-1)*0.05;
-      const hKg=hogarTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr)*t.kgPorRecol*t.frecuencia,0);
-      const hInc=hogarTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr)*t.tarifa,0);
-      const hN=hogarTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr),0);
-      const eKg=empresaTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr)*t.kgPorRecol*t.frecuencia,0);
-      const eInc=empresaTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr)*t.tarifa,0);
-      const eN=empresaTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr),0);
-      const kgMM=hKg+eKg;
-      const iM=hInc+eInc+(kgMM*(tasaConversion/100)*(pctVentaCompost/100)*precioKgCompost)+otrosIngresos;
+      const hK=hTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr)*t.kgPorRecol*t.frecuencia,0);
+      const hI=hTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr)*t.tarifa,0);
+      const hN=hTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr),0);
+      const eK=eTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr)*t.kgPorRecol*t.frecuencia,0);
+      const eI=eTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr)*t.tarifa,0);
+      const eN=eTiers.reduce((s,t)=>s+Math.round(t.cantidad*cr),0);
+      const kgMM=hK+eK;
+      const iM=hI+eI+(kgMM*(tasaConv/100)*(pctVenta/100)*precioKg)+otrosIng;
       const cvM=cv*(cr*0.7+0.3);
       const cM=cf+cvM;
-      const uM=iM-cM;
-      ac+=uM;
-      proy.push({mes:m,hog:hN,emp:eN,ingreso:iM,costo:cM,utilidad:uM,acum:ac});
+      const uM=iM-cM;ac+=uM;
+      proy.push({mes:m,hog:hN,emp:eN,ingreso:iM,costo:cM,util:uM,acum:ac});
     }
 
-    return {kgM,kgH,kgE,kgComp,hogares,empCli,depM,amortM,desgM,iess,totSal,benSoc,d13,d14,fRes,vac,costoTotFijos,costoJorn,manoObra,cf,cv,costoT,incH,incE,incSusc,incComp,incTotal,uBruta,mBruto,partTrab,impR,uNeta,mNeto,totalCli,costoPorCli,tarifaProm,tarifaEq,cliEq,costoPorKg,invTotal,invActivos,invIntang,mesRec,roi,proy};
-  },[hogarTiers,empresaTiers,numFijos,salarioFijo,numJornaleros,pagoJornalDia,diasJornalMes,arriendo,serviciosBasicos,permisos,marketing,otrosFijos,assets,certs,customCerts,fixedIntangibles,costoTransporte,mantenimientoVehiculo,tipoTransporte,insumosCompostaje,baldesContenedores,otrosVariables,pctVentaCompost,precioKgCompost,tasaConversion,otrosIngresos,invCapitalTrabajo]);
+    return {hog,emp,kgH,kgE,kgM,kgComp,depM,amortM,desgM,invAct,invIntang,invT,
+      iess,totSalTC,d13,d14,fRes,vac,benSoc,costoTC,costoJ,mobraT,
+      cf,cv,costoT,incH,incE,incSusc,incComp,incTotal,
+      uBruta,mBruto,partTrab,impR,uNeta,mNeto,
+      totalCli,costoPorCli,tarifaProm,tarifaEq,cliEq,costoPorKg,
+      mesRec,roi,proy};
+  },[hTiers,eTiers,numTC,salTC,numJ,pagoJ,diasJ,arriendo,servBas,mkt,otrosF,assets,certs,ccerts,intFijos,costoTrans,mantV,insumos,baldes,otrosV,pctVenta,precioKg,tasaConv,otrosIng,capTrab]);
 
-  const ok=calc.uNeta>0;
-  const canView=submitted&&nombreEmpresa.trim().length>0;
+  const ok=R.uNeta>0;
+  const canView=submitted&&nombre.trim().length>0;
 
-  const handleSubmit=useCallback(async()=>{
-    if(!nombreEmpresa.trim())return;
-    try{
-      const key=`empresa:${nombreEmpresa.trim().toLowerCase().replace(/\s+/g,"_")}_${Date.now()}`;
-      const rec={empresa:nombreEmpresa.trim(),email:contactoEmail.trim(),tel:contactoTel.trim(),fecha:new Date().toISOString(),
-        datos:{hogarTiers,empresaTiers,numFijos,salarioFijo,numJornaleros,pagoJornalDia,diasJornalMes,arriendo,costoAgua,costoLuz,permisos,marketingCM,marketingPauta,otrosFijos,otrosFijosDesc,tipoTransporte,combustible,costoTransPublico,mantenimientoVehiculo,insumosCompostaje,baldesContenedores,otrosVariables,pctVentaCompost,precioKgCompost,tasaConversion,otrosIngresos,invCapitalTrabajo,assets,certs:certs.filter(c=>c.checked),customCerts:customCerts.filter(c=>c.checked),fixedIntangibles:fixedIntangibles.filter(i=>i.activo)},
-        res:{costoT:calc.costoT,incTotal:calc.incTotal,uNeta:calc.uNeta,mNeto:calc.mNeto,cliEq:calc.cliEq,tarifaEq:calc.tarifaEq,roi:calc.roi,mesRec:calc.mesRec,invTotal:calc.invTotal}};
-      if(window.storage)await window.storage.set(key,JSON.stringify(rec));
-    }catch(e){console.log("storage:",e)}
-    setSubmitted(true);
-  },[nombreEmpresa,contactoEmail,contactoTel,hogarTiers,empresaTiers,calc,numFijos,salarioFijo,numJornaleros,pagoJornalDia,diasJornalMes,arriendo,costoAgua,costoLuz,permisos,marketingCM,marketingPauta,otrosFijos,otrosFijosDesc,tipoTransporte,combustible,costoTransPublico,mantenimientoVehiculo,insumosCompostaje,baldesContenedores,otrosVariables,pctVentaCompost,precioKgCompost,tasaConversion,otrosIngresos,invCapitalTrabajo,assets,certs,customCerts,fixedIntangibles]);
-
-  const dlReport=useCallback(()=>{
-    const hDet=hogarTiers.filter(t=>t.cantidad>0).map(t=>`  ${t.plan||"Plan"} (${t.cantidad}): ${FREQ.find(o=>o.value===t.frecuencia)?.label||""} — ${f$(t.tarifa)}/mes c/u`).join("\n");
-    const eDet=empresaTiers.filter(t=>t.cantidad>0).map(t=>`  ${t.tipo||"Tipo"} (${t.cantidad}): ${FREQ.find(o=>o.value===t.frecuencia)?.label||""} — ${f$(t.tarifa)}/mes c/u`).join("\n");
-    const certDet=[...certs.filter(c=>c.checked),...customCerts.filter(c=>c.checked)].map(c=>`  ${c.label}: ${f$(c.valor)}`).join("\n");
-    const l=[
-      `REPORTE FINANCIERO — ${nombreEmpresa.toUpperCase()}`,
-      `Generado: ${new Date().toLocaleDateString("es-EC")}`,`Contacto: ${contactoEmail} / ${contactoTel}`,"",
-      "═══════════════════════════════════════════","RESUMEN","═══════════════════════════════════════════",
-      `Clientes: ${calc.totalCli} (${calc.hogares} hogares + ${calc.empCli} empresas)`,
-      `Kg residuos/mes: ${fN(calc.kgM)}`,`Kg compost/mes: ${fN(calc.kgComp)}`,"",
-      "Hogares por plan:",hDet||"  (ninguno)",
-      calc.empCli>0?"Empresas:":null,calc.empCli>0?eDet:null,"",
-      certDet?("Certificaciones:\n"+certDet):"","",
-      `INGRESO TOTAL: ${f$(calc.incTotal)}`,`  Hogares: ${f$(calc.incH)}`,`  Empresas: ${f$(calc.incE)}`,`  Compost: ${f$(calc.incComp)}`,`  Otros: ${f$(otrosIngresos)}`,"",
-      `COSTO TOTAL: ${f$(calc.costoT)}`,`  Fijos: ${f$(calc.cf)}`,`  Variables: ${f$(calc.cv)}`,"",
-      `UTILIDAD NETA: ${f$(calc.uNeta)}`,`Margen: ${fN(calc.mNeto)}%`,"",
-      `Punto equilibrio: ${Math.ceil(Math.max(calc.cliEq,0))} clientes`,
-      `Tarifa equilibrio: ${f$(Math.max(calc.tarifaEq,0))}`,
-      `ROI anual: ${fN(calc.roi)}%`,
-      `Recuperación: ${calc.mesRec===Infinity?"N/A":fN(calc.mesRec)+" meses"}`,"",
-      "PROYECCIÓN 12 MESES","Mes  Hog  Emp  Ingreso     Costo       Utilidad    Acum.",
-      ...calc.proy.map(p=>`${String(p.mes).padStart(2)}  ${String(p.hog).padStart(4)} ${String(p.emp).padStart(4)}  ${f$(p.ingreso).padStart(10)}  ${f$(p.costo).padStart(10)}  ${f$(p.utilidad).padStart(10)}  ${f$(p.acum).padStart(10)}`),
-      "","Calculadora de referencia · melanievalencia.com"
+  // ═══ GENERAR REPORTE TEXTO ═══
+  const generarReporte=useCallback(()=>{
+    const hDet=hTiers.filter(t=>t.cantidad>0).map(t=>`  ${t.plan||"Plan"} (${t.cantidad}): ${FREQ.find(o=>o.value===t.frecuencia)?.label||""} — ${f$(t.tarifa)}/mes c/u`).join("\n");
+    const eDet=eTiers.filter(t=>t.cantidad>0).map(t=>`  ${t.tipo||"Tipo"} (${t.cantidad}): ${FREQ.find(o=>o.value===t.frecuencia)?.label||""} — ${f$(t.tarifa)}/mes c/u`).join("\n");
+    const certDet=[...certs.filter(c=>c.on),...ccerts.filter(c=>c.on)].map(c=>`  ${c.label}: ${f$(c.valor)}`).join("\n");
+    return [
+      `REPORTE FINANCIERO — ${nombre.toUpperCase()}`,
+      `Fecha: ${new Date().toLocaleDateString("es-EC")}`,`Contacto: ${email} / ${tel}`,"",
+      `═══ CLIENTES ═══`,
+      `Total: ${R.totalCli} (${R.hog} hogares + ${R.emp} empresas)`,
+      `Residuos: ${fN(R.kgM)} kg/mes → ${fN(R.kgComp)} kg compost/mes`,"",
+      "Hogares:",hDet||"  (ninguno)","",
+      R.emp>0?"Empresas:":"",R.emp>0?eDet:"","",
+      certDet?`Certificaciones:\n${certDet}`:"","",
+      `═══ INGRESOS ═══`,
+      `Total mensual: ${f$(R.incTotal)}`,`  Hogares: ${f$(R.incH)}`,`  Empresas: ${f$(R.incE)}`,`  Compost: ${f$(R.incComp)}`,`  Otros: ${f$(otrosIng)}`,"",
+      `═══ COSTOS ═══`,
+      `Total mensual: ${f$(R.costoT)}`,`  Fijos: ${f$(R.cf)}`,`  Variables: ${f$(R.cv)}`,"",
+      `═══ ESTADO DE RESULTADOS ═══`,
+      `Ingresos:        ${f$(R.incTotal)}`,
+      `(-) Costos:      ${f$(R.costoT)}`,
+      `= Utilidad bruta: ${f$(R.uBruta)}`,
+      `(-) 15% Particip.: ${f$(R.partTrab)}`,
+      `(-) RIMPE 2%:    ${f$(R.impR)}`,
+      `= UTILIDAD NETA: ${f$(R.uNeta)}`,
+      `Margen neto: ${fN(R.mNeto)}%`,"",
+      `═══ INDICADORES ═══`,
+      `Costo/cliente: ${f$(R.costoPorCli)} | Costo/kg: ${f$(R.costoPorKg)}`,
+      `Punto equilibrio: ${Math.ceil(Math.max(R.cliEq,0))} clientes`,
+      `Tarifa equilibrio: ${f$(Math.max(R.tarifaEq,0))}`,
+      `Inversión: ${f$(R.invT)} | ROI: ${fN(R.roi)}%`,
+      `Recuperación: ${R.mesRec===Infinity?"N/A":fN(R.mesRec)+" meses"}`,"",
+      `═══ PROYECCIÓN 12 MESES ═══`,
+      "Mes  Hog  Emp  Ingreso     Costo       Utilidad    Acum.",
+      ...R.proy.map(p=>`${String(p.mes).padStart(2)}  ${String(p.hog).padStart(4)} ${String(p.emp).padStart(4)}  ${f$(p.ingreso).padStart(10)}  ${f$(p.costo).padStart(10)}  ${f$(p.util).padStart(10)}  ${f$(p.acum).padStart(10)}`),
+      "","melanievalencia.com · Herramienta de referencia"
     ].filter(x=>x!==null).join("\n");
-    const b=new Blob([l],{type:"text/plain;charset=utf-8"});
-    const u=URL.createObjectURL(b);
-    const a=document.createElement("a");a.href=u;a.download=`Reporte_${nombreEmpresa.replace(/\s+/g,"_")}.txt`;a.click();URL.revokeObjectURL(u);
-  },[nombreEmpresa,contactoEmail,contactoTel,hogarTiers,empresaTiers,certs,customCerts,calc,otrosIngresos]);
+  },[nombre,email,tel,hTiers,eTiers,certs,ccerts,R,otrosIng]);
 
+  // ═══ DESCARGAR ═══
+  const descargar=useCallback(()=>{
+    const txt=generarReporte();
+    const b=new Blob([txt],{type:"text/plain;charset=utf-8"});
+    const u=URL.createObjectURL(b);
+    const a=document.createElement("a");
+    a.href=u;a.download=`Reporte_${nombre.replace(/\s+/g,"_")}_${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(u);
+  },[nombre,generarReporte]);
+
+  // ═══ ENVIAR A GOOGLE SHEETS ═══
+  const enviar=useCallback(async()=>{
+    if(!nombre.trim())return;
+    setSending(true);setSendError("");
+    const payload={
+      empresa:nombre.trim(),email:email.trim(),tel:tel.trim(),
+      hogares:R.hog,empresasClientes:R.emp,kgMensuales:R.kgM,kgCompost:R.kgComp,
+      ingresoHogares:R.incH,ingresoEmpresas:R.incE,ingresoCompost:R.incComp,otrosIngresos:otrosIng,ingresoTotal:R.incTotal,
+      costosFijos:R.cf,costosVariables:R.cv,costoTotal:R.costoT,
+      utilidadBruta:R.uBruta,utilidadNeta:R.uNeta,margenNeto:R.mNeto,
+      clientesEquilibrio:Math.ceil(Math.max(R.cliEq,0)),tarifaEquilibrio:R.tarifaEq,roi:R.roi,
+      inversionTotal:R.invT,mesesRecuperacion:R.mesRec===Infinity?"N/A":Math.round(R.mesRec*10)/10,
+      tipoTransporte:tipoTrans,
+      certificaciones:[...certs.filter(c=>c.on),...ccerts.filter(c=>c.on)].map(c=>c.label),
+      hogarTiers:hTiers.filter(t=>t.cantidad>0),empresaTiers:eTiers.filter(t=>t.cantidad>0),
+    };
+    try{
+      if(GOOGLE_SCRIPT_URL){
+        await fetch(GOOGLE_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)});
+      }
+      setSub(true);
+    }catch(e){
+      setSendError("Error al enviar. Tus resultados están disponibles de todas formas.");
+      setSub(true);
+    }
+    setSending(false);
+  },[nombre,email,tel,R,tipoTrans,certs,ccerts,hTiers,eTiers,otrosIng]);
+
+  // ─── RENDER ───
   return <div style={{maxWidth:520,margin:"0 auto",minHeight:"100vh"}}>
-    {/* Header */}
-    <div style={{background:`linear-gradient(135deg,${C.earth} 0%,${C.earthL} 50%,${C.leaf} 100%)`,padding:"36px 24px 28px",borderRadius:"0 0 28px 28px",position:"relative",overflow:"hidden"}}>
+    <div style={{background:`linear-gradient(135deg,${C.earth},${C.earthL} 50%,${C.leaf})`,padding:"36px 24px 28px",borderRadius:"0 0 28px 28px",position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",top:-20,right:-20,width:140,height:140,borderRadius:"50%",background:"rgba(164,214,94,0.12)"}}/>
       <div style={{position:"relative"}}>
         <div style={{fontSize:32,marginBottom:4}}>🌱</div>
-        <h1 style={{margin:0,fontSize:24,fontWeight:800,color:C.white,fontFamily:"'Playfair Display',serif",lineHeight:1.2}}>Calculadora Financiera</h1>
-        <p style={{margin:"6px 0 0",fontSize:14,color:"rgba(255,255,255,0.8)",fontWeight:500}}>Compostaje comunitario · Quito</p>
-        {nombreEmpresa&&<p style={{margin:"6px 0 0",fontSize:16,color:C.lime,fontWeight:700}}>{nombreEmpresa}</p>}
+        <h1 style={{margin:0,fontSize:24,fontWeight:800,color:C.white,fontFamily:"'Playfair Display',serif"}}>Calculadora Financiera</h1>
+        <p style={{margin:"6px 0 0",fontSize:14,color:"rgba(255,255,255,0.8)"}}>Compostaje comunitario · Quito</p>
+        {nombre&&<p style={{margin:"6px 0 0",fontSize:16,color:C.lime,fontWeight:700}}>{nombre}</p>}
         <p style={{margin:"4px 0 0",fontSize:11,color:"rgba(255,255,255,0.5)"}}>melanievalencia.com</p>
       </div>
     </div>
 
     {canView&&<div style={{padding:"16px 16px 0",display:"flex",gap:8,flexWrap:"wrap"}}>
-      <MC label="Utilidad neta/mes" value={f$(calc.uNeta)} color={ok?C.success:C.danger}/>
-      <MC label="Punto equilibrio" value={`${Math.ceil(Math.max(calc.cliEq,0))} clientes`} color={C.amber}/>
-      <MC label="Tarifa equilibrio" value={f$(Math.max(calc.tarifaEq,0))} sub="prom. por cliente" color={C.earth}/>
+      <MC label="Utilidad neta/mes" value={f$(R.uNeta)} color={ok?C.success:C.danger}/>
+      <MC label="Equilibrio" value={`${Math.ceil(Math.max(R.cliEq,0))} clientes`} color={C.amber}/>
+      <MC label="Tarifa equilibrio" value={f$(Math.max(R.tarifaEq,0))} sub="prom/cliente" color={C.earth}/>
     </div>}
 
     <div style={{display:"flex",gap:4,padding:"16px 16px 0",overflowX:"auto"}}>
-      {TABS.map(t=>{
-        const lk=(t.id==="resultados"||t.id==="proyeccion")&&!canView;
-        return <button key={t.id} onClick={()=>!lk&&setActiveTab(t.id)} style={{flex:1,padding:"10px 8px",border:"none",borderRadius:12,fontSize:12,fontWeight:600,cursor:lk?"not-allowed":"pointer",background:activeTab===t.id?C.earth:C.white,color:activeTab===t.id?C.white:lk?"#ccc":C.bark,opacity:lk?0.5:1,transition:"all 0.25s",boxShadow:activeTab===t.id?`0 4px 12px ${C.earth}44`:"0 1px 4px rgba(0,0,0,0.06)",whiteSpace:"nowrap"}}>{lk?"🔒":t.icon} {t.label}</button>;
-      })}
+      {TABS.map(t=>{const lk=(t.id==="resultados"||t.id==="proyeccion")&&!canView;
+        return <button key={t.id} onClick={()=>!lk&&setTab(t.id)} style={{flex:1,padding:"10px 8px",border:"none",borderRadius:12,fontSize:12,fontWeight:600,cursor:lk?"not-allowed":"pointer",background:tab===t.id?C.earth:C.white,color:tab===t.id?C.white:lk?"#ccc":C.bark,opacity:lk?0.5:1,boxShadow:tab===t.id?`0 4px 12px ${C.earth}44`:"0 1px 4px rgba(0,0,0,0.06)",whiteSpace:"nowrap"}}>{lk?"🔒":t.icon} {t.label}</button>;})}
     </div>
 
     <div style={{padding:16}}>
 
-      {activeTab==="costos"&&<>
-        <Sec title="Tu emprendimiento" icon="🏷️">
-          <Txt label="Nombre de tu empresa *" value={nombreEmpresa} onChange={v=>{setNombreEmpresa(v);setSubmitted(false);}} placeholder="Ej: CompostaQuito, Tierra Viva..." hint="Obligatorio para ver resultados"/>
-          <Txt label="Email" value={contactoEmail} onChange={setContactoEmail} placeholder="tu@email.com"/>
-          <Txt label="Teléfono / WhatsApp" value={contactoTel} onChange={setContactoTel} placeholder="0999..."/>
-        </Sec>
+    {tab==="costos"&&<>
+      <Sec title="Tu emprendimiento" icon="🏷️">
+        <Txt label="Nombre de tu empresa *" value={nombre} onChange={v=>{setNombre(v);setSub(false);}} placeholder="Ej: CompostaQuito..." hint="Obligatorio para ver resultados"/>
+        <Txt label="Email" value={email} onChange={setEmail} placeholder="tu@email.com"/>
+        <Txt label="WhatsApp" value={tel} onChange={setTel} placeholder="0999..."/>
+      </Sec>
 
-        <Sec title="Hogares" icon="🏠">
-          <IB>💡 Cada plan puede tener su propia frecuencia y tarifa. Así ofreces semanal, quincenal o mensual a diferente precio.</IB>
-          {hogarTiers.map(t=><TierCard key={t.id} tier={t} onChange={u=>updH(t.id,u)} onRemove={()=>rmH(t.id)} nameLabel="Nombre del plan" nameField="plan" countLabel="Hogares"/>)}
-          <button onClick={addH} style={{width:"100%",padding:"10px",border:`1.5px dashed ${C.earth}60`,borderRadius:10,background:`${C.earth}08`,color:C.earth,fontSize:13,fontWeight:600,cursor:"pointer",marginTop:4}}>+ Agregar plan</button>
-          <div style={{background:C.ghost,borderRadius:10,padding:"12px 14px",marginTop:12}}>
-            <span style={{fontSize:12,color:C.barkL}}>Total: <strong style={{color:C.earth}}>{calc.hogares}</strong> hogares · <strong style={{color:C.earth}}>{fN(calc.kgH)} kg/mes</strong></span>
-          </div>
-        </Sec>
-
-        <Sec title="Empresas" icon="🏢" accent={C.earthL}>
-          <IB>💡 Restaurantes, cafeterías, oficinas, hoteles, mercados. Cada tipo con su frecuencia y tarifa.</IB>
-          {empresaTiers.map(t=><TierCard key={t.id} tier={t} onChange={u=>updE(t.id,u)} onRemove={()=>rmE(t.id)} nameLabel="Tipo de negocio" nameField="tipo" countLabel="Empresas"/>)}
-          <button onClick={addE} style={{width:"100%",padding:"10px",border:`1.5px dashed ${C.earthL}60`,borderRadius:10,background:`${C.earthL}08`,color:C.earthL,fontSize:13,fontWeight:600,cursor:"pointer",marginTop:4}}>+ Agregar tipo</button>
-          {calc.empCli>0&&<div style={{background:C.ghost,borderRadius:10,padding:"12px 14px",marginTop:12}}>
-            <span style={{fontSize:12,color:C.barkL}}>Total: <strong style={{color:C.earthL}}>{calc.empCli}</strong> empresas · <strong style={{color:C.earthL}}>{fN(calc.kgE)} kg/mes</strong></span>
-          </div>}
-        </Sec>
-
-        <div style={{background:`linear-gradient(135deg,${C.earth}15 0%,${C.leaf}10 100%)`,borderRadius:14,padding:"14px 16px",marginBottom:20,border:`1px solid ${C.earth}20`}}>
-          <span style={{fontSize:12,color:C.barkL}}>Total: </span>
-          <strong style={{fontSize:16,color:C.earth,fontFamily:"'DM Mono',monospace"}}>{calc.totalCli} clientes</strong>
-          <span style={{fontSize:12,color:C.barkL}}> · {fN(calc.kgM)} kg/mes → </span>
-          <strong style={{fontSize:14,color:C.leaf,fontFamily:"'DM Mono',monospace"}}>{fN(calc.kgComp)} kg compost</strong>
+      <Sec title="Hogares" icon="🏠">
+        <IB>💡 Cada plan con su frecuencia y tarifa.</IB>
+        {hTiers.map(t=><TierCard key={t.id} t={t} onChange={u=>setHT(hTiers.map(x=>x.id===t.id?u:x))} onRemove={()=>setHT(hTiers.filter(x=>x.id!==t.id))} nLabel="Plan" nField="plan" cLabel="Hogares"/>)}
+        <button onClick={addH} style={{width:"100%",padding:"10px",border:`1.5px dashed ${C.earth}60`,borderRadius:10,background:`${C.earth}08`,color:C.earth,fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Plan</button>
+        <div style={{background:C.ghost,borderRadius:10,padding:"12px 14px",marginTop:12}}>
+          <span style={{fontSize:12,color:C.barkL}}>Total: <strong style={{color:C.earth}}>{R.hog}</strong> hogares · <strong style={{color:C.earth}}>{fN(R.kgH)} kg/mes</strong></span>
         </div>
+      </Sec>
 
-        <Sec title="Mano de obra" icon="👷" accent={C.bark}>
-          <IB color={C.bark}>💡 <strong>Tiempo completo</strong> = con contrato IESS. <strong>Jornaleros</strong> = pago por día.</IB>
-          <div style={{fontSize:13,fontWeight:700,color:C.earth,marginBottom:8}}>👤 Tiempo completo</div>
-          <Inp label="¿Cuántos?" value={numFijos} onChange={setNumFijos} unit="personas" min={0} max={20}/>
-          {numFijos>0&&<>
-            <Inp label="Salario c/u" value={salarioFijo} onChange={setSalarioFijo} unit="$/mes" hint="SBU: $460 mínimo"/>
-            <div style={{background:C.ghost,borderRadius:10,padding:"12px 14px",marginBottom:16}}>
-              <div style={{fontSize:11,color:C.barkL,marginBottom:6}}>Costo real (con beneficios de ley):</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 12px",fontSize:12}}>
-                <span style={{color:C.bark}}>Salarios+IESS:</span><span style={{fontFamily:"'DM Mono',monospace",fontWeight:600}}>{f$(calc.totSal)}</span>
-                <span style={{color:C.bark}}>13ro+14to+F.Res+Vac:</span><span style={{fontFamily:"'DM Mono',monospace"}}>{f$(calc.benSoc)}</span>
-                <span style={{color:C.earth,fontWeight:700}}>Total:</span><span style={{fontFamily:"'DM Mono',monospace",fontWeight:700,color:C.earth}}>{f$(calc.costoTotFijos)}</span>
-              </div>
+      <Sec title="Empresas" icon="🏢" accent={C.earthL}>
+        <IB>💡 Restaurantes, cafeterías, oficinas, hoteles. Cada tipo con su frecuencia y tarifa.</IB>
+        {eTiers.map(t=><TierCard key={t.id} t={t} onChange={u=>setET(eTiers.map(x=>x.id===t.id?u:x))} onRemove={()=>setET(eTiers.filter(x=>x.id!==t.id))} nLabel="Tipo" nField="tipo" cLabel="Empresas"/>)}
+        <button onClick={addE} style={{width:"100%",padding:"10px",border:`1.5px dashed ${C.earthL}60`,borderRadius:10,background:`${C.earthL}08`,color:C.earthL,fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Tipo</button>
+        {R.emp>0&&<div style={{background:C.ghost,borderRadius:10,padding:"12px 14px",marginTop:12}}>
+          <span style={{fontSize:12,color:C.barkL}}>Total: <strong style={{color:C.earthL}}>{R.emp}</strong> empresas · <strong style={{color:C.earthL}}>{fN(R.kgE)} kg/mes</strong></span>
+        </div>}
+      </Sec>
+
+      <div style={{background:`${C.earth}12`,borderRadius:14,padding:"14px 16px",marginBottom:20,border:`1px solid ${C.earth}20`}}>
+        <strong style={{fontSize:16,color:C.earth,fontFamily:"'DM Mono',monospace"}}>{R.totalCli} clientes</strong>
+        <span style={{fontSize:12,color:C.barkL}}> · {fN(R.kgM)} kg/mes → <strong style={{color:C.leaf}}>{fN(R.kgComp)} kg compost</strong></span>
+      </div>
+
+      <Sec title="Mano de obra" icon="👷" accent={C.bark}>
+        <div style={{fontSize:13,fontWeight:700,color:C.earth,marginBottom:8}}>👤 Tiempo completo</div>
+        <Inp label="Cantidad" value={numTC} onChange={setNumTC} unit="personas" min={0}/>
+        {numTC>0&&<><Inp label="Salario c/u" value={salTC} onChange={setSalTC} unit="$/mes" hint="SBU: $460 mín."/>
+          <div style={{background:C.ghost,borderRadius:10,padding:"12px 14px",marginBottom:16}}>
+            <div style={{fontSize:11,color:C.barkL,marginBottom:4}}>Costo real (con ley):</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"3px 12px",fontSize:12}}>
+              <span style={{color:C.bark}}>Salarios+IESS:</span><span style={{fontFamily:"'DM Mono',monospace"}}>{f$(R.totSalTC)}</span>
+              <span style={{color:C.bark}}>Beneficios:</span><span style={{fontFamily:"'DM Mono',monospace"}}>{f$(R.benSoc)}</span>
+              <span style={{color:C.earth,fontWeight:700}}>Total:</span><span style={{fontFamily:"'DM Mono',monospace",fontWeight:700,color:C.earth}}>{f$(R.costoTC)}</span>
             </div>
-          </>}
-          <div style={{fontSize:13,fontWeight:700,color:C.amber,marginBottom:8,marginTop:8}}>🧤 Jornaleros</div>
-          <Inp label="¿Cuántos?" value={numJornaleros} onChange={setNumJornaleros} unit="personas" min={0}/>
-          {numJornaleros>0&&<>
-            <Inp label="Pago por día c/u" value={pagoJornalDia} onChange={setPagoJornalDia} unit="$/día" hint="$15-25/día"/>
-            <Inp label="Días/mes c/u" value={diasJornalMes} onChange={setDiasJornalMes} unit="días" min={1} max={30}/>
-          </>}
-          <div style={{background:`${C.bark}0D`,borderRadius:10,padding:"12px 14px",marginTop:12}}>
-            <span style={{fontSize:12,color:C.barkL}}>Total mano de obra: </span>
-            <span style={{fontSize:17,fontWeight:700,color:C.bark,fontFamily:"'DM Mono',monospace"}}>{f$(calc.manoObra)}/mes</span>
           </div>
-        </Sec>
-
-        <Sec title="Desgaste de equipos" icon="🔧" accent={C.amber}>
-          <IB color={C.amber}>💡 ¿Cuánto guardar al mes para reemplazar tus equipos? Si tiene reventa (como vehículos), ponlo.</IB>
-          {assets.map(a=><AssetCard key={a.id} a={a} onChange={u=>updA(a.id,u)} onRemove={()=>rmA(a.id)} showResidual={true}/>)}
-          <button onClick={addA} style={{width:"100%",padding:"10px",border:`1.5px dashed ${C.amber}60`,borderRadius:10,background:`${C.amber}08`,color:C.amber,fontSize:13,fontWeight:600,cursor:"pointer",marginTop:4}}>+ Agregar equipo</button>
-          <div style={{background:`${C.amber}15`,borderRadius:10,padding:"12px 14px",marginTop:12}}>
-            <span style={{fontSize:12,color:C.barkL}}>Depreciación: </span><span style={{fontSize:17,fontWeight:700,color:C.amber,fontFamily:"'DM Mono',monospace"}}>{f$(calc.depM)}/mes</span>
-          </div>
-        </Sec>
-
-        <Sec title="Certificaciones y permisos" icon="📜" accent={C.leaf}>
-          <IB color={C.leaf}>💡 Marca las certificaciones que tienes o planeas obtener. El costo se reparte automáticamente en el tiempo adecuado (amortización). Las más comunes para gestores ambientales en Quito:</IB>
-          {certs.map((c,i)=><label key={c.id} style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:10,cursor:"pointer"}}>
-            <input type="checkbox" checked={c.checked} onChange={e=>{const n=[...certs];n[i]={...n[i],checked:e.target.checked};setCerts(n);}}
-              style={{marginTop:3,accentColor:C.leaf,width:18,height:18}}/>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:600,color:C.bark}}>{c.label}</div>
-              <div style={{display:"flex",gap:8,marginTop:4,alignItems:"center"}}>
-                <span style={{fontSize:11,color:C.barkL}}>Costo $</span>
-                <input type="number" value={c.valor} min={0} onChange={e=>{const n=[...certs];n[i]={...n[i],valor:Number(e.target.value)};setCerts(n);}}
-                  style={{width:80,padding:"4px 6px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,fontFamily:"'DM Mono',monospace",textAlign:"right",outline:"none"}}/>
-                <span style={{fontSize:11,color:C.barkL}}>Se reparte en {c.amortAnios} año{c.amortAnios>1?"s":""} → <strong>{f$(c.amortAnios>0?c.valor/(c.amortAnios*12):0)}/mes</strong></span>
-              </div>
-            </div>
-          </label>)}
-          {customCerts.map((c,i)=><div key={c.id} style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:10,position:"relative"}}>
-            <input type="checkbox" checked={c.checked} onChange={e=>{const n=[...customCerts];n[i]={...n[i],checked:e.target.checked};setCustomCerts(n);}}
-              style={{marginTop:3,accentColor:C.leaf,width:18,height:18}}/>
-            <div style={{flex:1}}>
-              <input type="text" value={c.label} placeholder="Otra certificación..." onChange={e=>{const n=[...customCerts];n[i]={...n[i],label:e.target.value};setCustomCerts(n);}}
-                style={{width:"100%",padding:"4px 8px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:13,outline:"none",marginBottom:4,boxSizing:"border-box"}}/>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <span style={{fontSize:11,color:C.barkL}}>$</span>
-                <input type="number" value={c.valor} min={0} onChange={e=>{const n=[...customCerts];n[i]={...n[i],valor:Number(e.target.value)};setCustomCerts(n);}}
-                  style={{width:80,padding:"4px 6px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,fontFamily:"'DM Mono',monospace",textAlign:"right",outline:"none"}}/>
-                <span style={{fontSize:11,color:C.barkL}}>en</span>
-                <select value={c.amortAnios} onChange={e=>{const n=[...customCerts];n[i]={...n[i],amortAnios:Number(e.target.value)};setCustomCerts(n);}}
-                  style={{padding:"4px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,outline:"none"}}>
-                  {[1,2,3,5].map(y=><option key={y} value={y}>{y} año{y>1?"s":""}</option>)}
-                </select>
-              </div>
-            </div>
-            <button onClick={()=>setCustomCerts(customCerts.filter((_,j)=>j!==i))} style={{width:22,height:22,border:"none",borderRadius:4,background:`${C.danger}15`,color:C.danger,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",marginTop:2}}>×</button>
-          </div>)}
-          <button onClick={addCC} style={{width:"100%",padding:"8px",border:`1.5px dashed ${C.leaf}60`,borderRadius:10,background:`${C.leaf}08`,color:C.leaf,fontSize:12,fontWeight:600,cursor:"pointer",marginTop:4}}>+ Agregar otra certificación</button>
-
-          <div style={{marginTop:16,fontSize:13,fontWeight:700,color:C.bark,marginBottom:8}}>Otros gastos iniciales (sin certificaciones)</div>
-          {fixedIntangibles.map((fi,i)=><label key={fi.id} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,cursor:"pointer"}}>
-            <input type="checkbox" checked={fi.activo} onChange={e=>{const n=[...fixedIntangibles];n[i]={...n[i],activo:e.target.checked};setFixedIntangibles(n);}}
-              style={{accentColor:C.leaf,width:18,height:18}}/>
-            <div style={{flex:1,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:13,color:C.bark}}>{fi.nombre}</span>
-              <div style={{display:"flex",alignItems:"center",gap:4}}>
-                <span style={{fontSize:11,color:C.barkL}}>$</span>
-                <input type="number" value={fi.valor} min={0} onChange={e=>{const n=[...fixedIntangibles];n[i]={...n[i],valor:Number(e.target.value)};setFixedIntangibles(n);}}
-                  style={{width:70,padding:"4px 6px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,fontFamily:"'DM Mono',monospace",textAlign:"right",outline:"none"}}/>
-                <span style={{fontSize:10,color:C.barkL}}>/{fi.amortAnios}a</span>
-              </div>
-            </div>
-          </label>)}
-
-          <div style={{background:`${C.leaf}15`,borderRadius:10,padding:"12px 14px",marginTop:12}}>
-            <span style={{fontSize:12,color:C.barkL}}>Amortización mensual total: </span><span style={{fontSize:17,fontWeight:700,color:C.leaf,fontFamily:"'DM Mono',monospace"}}>{f$(calc.amortM)}/mes</span>
-          </div>
-          <div style={{background:`${C.earth}10`,borderRadius:10,padding:"12px 14px",marginTop:10,border:`1px solid ${C.earth}20`}}>
-            <span style={{fontSize:12,color:C.barkL}}>Total desgaste + amortización: </span><span style={{fontSize:17,fontWeight:700,color:C.earth,fontFamily:"'DM Mono',monospace"}}>{f$(calc.desgM)}/mes</span>
-          </div>
-        </Sec>
-
-        <Sec title="Otros costos fijos" icon="🏢" accent={C.bark}>
-          <Inp label="Arriendo" value={arriendo} onChange={setArriendo} unit="$/mes" hint="Valles de Quito: $150-400"/>
-          <Inp label="Agua" value={costoAgua} onChange={setCostoAgua} unit="$/mes"/>
-          <Inp label="Luz" value={costoLuz} onChange={setCostoLuz} unit="$/mes"/>
-          <Inp label="Permisos mensuales prorrateados" value={permisos} onChange={setPermisos} unit="$/mes"/>
-          <Inp label="Marketing / community manager" value={marketingCM} onChange={setMarketingCM} unit="$/mes"/>
-          <Inp label="Pauta publicitaria" value={marketingPauta} onChange={setMarketingPauta} unit="$/mes"/>
-          <Inp label="Otros costos fijos" value={otrosFijos} onChange={setOtrosFijos} unit="$/mes"/>
-          {otrosFijos>0&&<Txt label="¿Qué incluyen?" value={otrosFijosDesc} onChange={setOtrosFijosDesc} placeholder="Seguro, contador, telefonía..." multiline/>}
-          <div style={{background:`${C.bark}0D`,borderRadius:10,padding:"12px 14px",marginTop:8}}>
-            <span style={{fontSize:12,color:C.barkL}}>Total fijos: </span><span style={{fontSize:17,fontWeight:700,color:C.bark,fontFamily:"'DM Mono',monospace"}}>{f$(calc.cf)}</span>
-          </div>
-        </Sec>
-
-        <Sec title="Costos variables" icon="⛽" accent={C.barkL}>
-          <Sel label="Tipo de transporte" value={tipoTransporte} onChange={setTipoTransporte} options={TRANSPORT_TYPES}/>
-          {(tipoTransporte==="vehiculo"||tipoTransporte==="moto"||tipoTransporte==="bicicargo")&&
-            <Inp label="Combustible / energía" value={combustible} onChange={setCombustible} unit="$/mes" hint={tipoTransporte==="bicicargo"?"Mantenimiento de bici":"Gasolina mensual"}/>}
-          {(tipoTransporte==="publico"||tipoTransporte==="mixto")&&
-            <Inp label="Pasajes transporte público" value={costoTransPublico} onChange={setCostoTransPublico} unit="$/mes" hint="Buses, trole, ecovía, etc."/>}
-          {tipoTransporte==="mixto"&&
-            <Inp label="Combustible vehículo" value={combustible} onChange={setCombustible} unit="$/mes"/>}
-          {tipoTransporte!=="publico"&&
-            <Inp label="Mantenimiento vehículo" value={mantenimientoVehiculo} onChange={setMantenimientoVehiculo} unit="$/mes"/>}
-          <Inp label="Insumos de compostaje" value={insumosCompostaje} onChange={setInsumosCompostaje} unit="$/mes" hint="Material seco, microorganismos"/>
-          <Inp label="Baldes / contenedores" value={baldesContenedores} onChange={setBaldesContenedores} unit="$/mes"/>
-          <Inp label="Otros variables" value={otrosVariables} onChange={setOtrosVariables} unit="$/mes"/>
-          <div style={{background:`${C.barkL}0D`,borderRadius:10,padding:"12px 14px",marginTop:8}}>
-            <span style={{fontSize:12,color:C.barkL}}>Total variables: </span><span style={{fontSize:17,fontWeight:700,color:C.barkL,fontFamily:"'DM Mono',monospace"}}>{f$(calc.cv)}</span>
-          </div>
-        </Sec>
-
-        <Sec title="Inversión inicial" icon="🏗️" accent={C.amber}>
-          <Inp label="Equipos" value={calc.invActivos} onChange={()=>{}} unit="$" disabled/>
-          <Inp label="Certificaciones + intangibles" value={calc.invIntang} onChange={()=>{}} unit="$" disabled/>
-          <Inp label="Capital de trabajo" value={invCapitalTrabajo} onChange={setInvCapitalTrabajo} unit="$" hint="Para los primeros meses"/>
-          <div style={{background:`${C.amber}15`,borderRadius:10,padding:"12px 14px",marginTop:8}}>
-            <span style={{fontSize:12,color:C.barkL}}>Inversión total: </span><span style={{fontSize:17,fontWeight:700,color:C.amber,fontFamily:"'DM Mono',monospace"}}>{f$(calc.invTotal)}</span>
-          </div>
-        </Sec>
-      </>}
-
-      {activeTab==="ingresos"&&<>
-        <Sec title="Tarifas de suscripción" icon="💳">
-          <IB>💡 Las tarifas se configuran por plan en la pestaña de Costos. Aquí ves el resumen.</IB>
-          <div style={{fontSize:13,fontWeight:700,color:C.earth,marginBottom:8}}>🏠 Hogares ({calc.hogares})</div>
-          {hogarTiers.filter(t=>t.cantidad>0).map(t=><div key={t.id} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"4px 0",color:C.bark}}>
-            <span>{t.plan||"?"} ({t.cantidad}) — {FREQ.find(o=>o.value===t.frecuencia)?.label||""} — {f$(t.tarifa)}/mes</span>
-            <span style={{fontFamily:"'DM Mono',monospace",fontWeight:600}}>{f$(t.cantidad*t.tarifa)}</span>
-          </div>)}
-          <div style={{background:C.ghost,borderRadius:10,padding:"10px 14px",margin:"8px 0 16px"}}><span style={{fontSize:12,color:C.barkL}}>Subtotal hogares: </span><span style={{fontSize:15,fontWeight:700,color:C.earth,fontFamily:"'DM Mono',monospace"}}>{f$(calc.incH)}/mes</span></div>
-
-          {calc.empCli>0&&<><div style={{fontSize:13,fontWeight:700,color:C.earthL,marginBottom:8}}>🏢 Empresas ({calc.empCli})</div>
-          {empresaTiers.filter(t=>t.cantidad>0).map(t=><div key={t.id} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"4px 0",color:C.bark}}>
-            <span>{t.tipo||"?"} ({t.cantidad}) — {FREQ.find(o=>o.value===t.frecuencia)?.label||""} — {f$(t.tarifa)}/mes</span>
-            <span style={{fontFamily:"'DM Mono',monospace",fontWeight:600}}>{f$(t.cantidad*t.tarifa)}</span>
-          </div>)}
-          <div style={{background:C.ghost,borderRadius:10,padding:"10px 14px",margin:"8px 0 16px"}}><span style={{fontSize:12,color:C.barkL}}>Subtotal empresas: </span><span style={{fontSize:15,fontWeight:700,color:C.earthL,fontFamily:"'DM Mono',monospace"}}>{f$(calc.incE)}/mes</span></div></>}
-
-          <div style={{background:`${C.earth}10`,borderRadius:10,padding:"12px 14px",border:`1px solid ${C.earth}20`}}>
-            <span style={{fontSize:12,color:C.barkL}}>Total suscripciones: </span><span style={{fontSize:17,fontWeight:700,color:C.earth,fontFamily:"'DM Mono',monospace"}}>{f$(calc.incSusc)}/mes</span>
-          </div>
-        </Sec>
-        <Sec title="Venta de compost" icon="🌿" accent={C.leaf}>
-          <Inp label="Conversión residuo → compost" value={tasaConversion} onChange={setTasaConversion} unit="%" min={10} max={50} hint="Típico: 25-35%"/>
-          <Inp label="% compost a la venta" value={pctVentaCompost} onChange={setPctVentaCompost} unit="%" max={100}/>
-          <Inp label="Precio por kg" value={precioKgCompost} onChange={setPrecioKgCompost} unit="$/kg" step={0.05} hint="$0.25-0.80/kg"/>
-          <div style={{background:`${C.leaf}0D`,borderRadius:10,padding:"12px 14px"}}>
-            <div style={{fontSize:12,color:C.barkL}}>Compost: <strong>{fN(calc.kgComp)} kg/mes</strong></div>
-            <span style={{fontSize:12,color:C.barkL}}>Ingreso: </span><span style={{fontSize:17,fontWeight:700,color:C.leaf,fontFamily:"'DM Mono',monospace"}}>{f$(calc.incComp)}/mes</span>
-          </div>
-        </Sec>
-        <Sec title="Otros ingresos" icon="✨" accent={C.amber}>
-          <Inp label="Talleres, bonos, consultoría" value={otrosIngresos} onChange={setOtrosIngresos} unit="$/mes"/>
-        </Sec>
-        <div style={{background:`linear-gradient(135deg,${C.earth} 0%,${C.leaf} 100%)`,borderRadius:16,padding:"20px 18px",color:C.white}}>
-          <div style={{fontSize:12,fontWeight:600,opacity:0.8,marginBottom:4}}>INGRESO TOTAL MENSUAL</div>
-          <div style={{fontSize:28,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{f$(calc.incTotal)}</div>
+        </>}
+        <div style={{fontSize:13,fontWeight:700,color:C.amber,marginBottom:8,marginTop:8}}>🧤 Jornaleros</div>
+        <Inp label="Cantidad" value={numJ} onChange={setNumJ} unit="personas" min={0}/>
+        {numJ>0&&<><Inp label="$/día c/u" value={pagoJ} onChange={setPagoJ} unit="$/día" hint="$15-25"/>
+          <Inp label="Días/mes c/u" value={diasJ} onChange={setDiasJ} unit="días" min={1} max={30}/></>}
+        <div style={{background:`${C.bark}0D`,borderRadius:10,padding:"12px 14px",marginTop:12}}>
+          <span style={{fontSize:12,color:C.barkL}}>Total mano de obra: </span><span style={{fontSize:17,fontWeight:700,color:C.bark,fontFamily:"'DM Mono',monospace"}}>{f$(R.mobraT)}/mes</span>
         </div>
-      </>}
+      </Sec>
 
-      {(activeTab==="resultados"||activeTab==="proyeccion")&&!canView&&
-        <Sec title="Desbloquea resultados" icon="🔐">
-          <IB>Ingresa el nombre de tu empresa en la pestaña de Costos y presiona el botón.</IB>
-          {!nombreEmpresa.trim()&&<p style={{color:C.danger,fontSize:13,fontWeight:600}}>⚠️ Primero ingresa el nombre de tu empresa</p>}
-          {nombreEmpresa.trim()&&<button onClick={handleSubmit} style={{width:"100%",padding:"14px",border:"none",borderRadius:12,background:`linear-gradient(135deg,${C.earth} 0%,${C.leaf} 100%)`,color:C.white,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:`0 4px 16px ${C.earth}44`}}>🚀 Enviar y ver resultados</button>}
-        </Sec>}
-
-      {activeTab==="resultados"&&canView&&<>
-        <Sec title={`Estado de resultados — ${nombreEmpresa}`} icon="📋">
-          {[
-            {l:"Ingresos totales",v:calc.incTotal,b:true,c:C.earth},
-            {l:"  Hogares",v:calc.incH,indent:true},{l:"  Empresas",v:calc.incE,indent:true},{l:"  Compost",v:calc.incComp,indent:true},{l:"  Otros",v:otrosIngresos,indent:true},
-            {div:true},
-            {l:"(-) Mano obra t. completo",v:calc.costoTotFijos,c:C.danger},{l:"(-) Jornaleros",v:calc.costoJorn,c:C.danger},
-            {l:"(-) Arriendo",v:arriendo,c:C.danger},{l:"(-) Agua",v:costoAgua,c:C.danger},{l:"(-) Luz",v:costoLuz,c:C.danger},
-            {l:"(-) Depreciación",v:calc.depM,c:C.danger},{l:"(-) Amortización",v:calc.amortM,c:C.danger},
-            {l:"(-) Marketing/CM",v:marketingCM,c:C.danger},{l:"(-) Pauta",v:marketingPauta,c:C.danger},{l:"(-) Permisos",v:permisos,c:C.danger},
-            otrosFijos>0?{l:`(-) ${otrosFijosDesc||"Otros fijos"}`,v:otrosFijos,c:C.danger}:null,
-            {l:"(-) Variables",v:calc.cv,c:C.danger},
-            {div:true},
-            {l:"= Utilidad bruta",v:calc.uBruta,b:true,c:calc.uBruta>=0?C.success:C.danger},
-            {l:"(-) 15% Particip.",v:calc.partTrab,c:C.barkL},{l:"(-) RIMPE 2%",v:calc.impR,c:C.barkL},
-            {div:true},
-            {l:"= UTILIDAD NETA",v:calc.uNeta,b:true,big:true,c:calc.uNeta>=0?C.success:C.danger},
-          ].filter(Boolean).map((r,i)=>r.div?<div key={i} style={{borderTop:`1px dashed ${C.warm}`,margin:"8px 0"}}/>:
-            <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:r.big?16:r.indent?12:13,fontWeight:r.b?700:400,color:r.c||C.soil}}>
-              <span>{r.l}</span><span style={{fontFamily:"'DM Mono',monospace",fontWeight:r.b?700:500}}>{f$(r.v)}</span>
-            </div>)}
-          <div style={{marginTop:12}}><PB label="Margen bruto" value={Math.max(calc.mBruto,0)} max={100} color={calc.mBruto>20?C.success:C.amber}/><PB label="Margen neto" value={Math.max(calc.mNeto,0)} max={100} color={calc.mNeto>10?C.success:C.amber}/></div>
-        </Sec>
-        <Sec title="Indicadores" icon="🎯" accent={C.amber}>
-          <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:14}}><MC label="Costo/cliente" value={f$(calc.costoPorCli)} sub="mensual" color={C.bark}/><MC label="Costo/kg" value={f$(calc.costoPorKg)} sub="residuo" color={C.barkL}/></div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:10}}><MC label="ROI anual" value={`${fN(calc.roi)}%`} color={calc.roi>0?C.success:C.danger}/><MC label="Recuperación" value={calc.mesRec===Infinity?"N/A":`${fN(calc.mesRec)} meses`} color={calc.mesRec<=12?C.success:C.amber}/></div>
-        </Sec>
-        <Sec title="Punto de equilibrio" icon="⚖️">
-          <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:16}}>
-            <MC label="Clientes mínimos" value={Math.ceil(Math.max(calc.cliEq,0))} sub={`tarifa prom. ${f$(calc.tarifaProm)}`} color={calc.totalCli>=calc.cliEq?C.success:C.danger} large/>
-            <MC label="Tarifa equilibrio" value={f$(Math.max(calc.tarifaEq,0))} sub={`con ${calc.totalCli} clientes`} color={calc.tarifaProm>=calc.tarifaEq?C.success:C.danger} large/>
-          </div>
-          <div style={{fontSize:13,fontWeight:600,color:C.bark,marginBottom:10}}>¿En qué se va tu dinero?</div>
-          <BC data={[{label:"T.compl.",value:calc.costoTotFijos},{label:"Jornal.",value:calc.costoJorn},{label:"Arriendo",value:arriendo},{label:"Transp.",value:costoTransporte+(tipoTransporte!=="publico"?mantenimientoVehiculo:0)},{label:"Deprec.",value:calc.depM},{label:"Amort.",value:calc.amortM},{label:"Mktg",value:marketing},{label:"Otros",value:serviciosBasicos+permisos+otrosFijos+otrosVariables+insumosCompostaje+baldesContenedores}]} color={C.bark}/>
-          <div style={{marginTop:16,padding:"14px",background:ok?`${C.success}10`:`${C.danger}10`,borderRadius:12,border:`1px solid ${ok?C.success:C.danger}30`}}>
-            <div style={{fontSize:14,fontWeight:700,color:ok?C.success:C.danger,marginBottom:4}}>{ok?"✅ Rentable":"⚠️ Aún no rentable"}</div>
-            <div style={{fontSize:12,color:C.barkL,lineHeight:1.5}}>{ok?`Con ${calc.totalCli} clientes generas ${f$(calc.uNeta)} netos/mes.`:`Necesitas ${Math.ceil(Math.max(calc.cliEq,0))} clientes o ajustar tarifas.`}</div>
-          </div>
-        </Sec>
-        <button onClick={dlReport} style={{width:"100%",padding:"16px",border:"none",borderRadius:14,background:`linear-gradient(135deg,${C.earth} 0%,${C.leaf} 100%)`,color:C.white,fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:16,boxShadow:`0 4px 16px ${C.earth}44`}}>📥 Descargar reporte</button>
-      </>}
-
-      {activeTab==="proyeccion"&&canView&&<>
-        <Sec title="Proyección 12 meses" icon="📈">
-          <p style={{fontSize:12,color:C.barkL,margin:"0 0 14px",lineHeight:1.5}}>Crecimiento 5%/mes. Variables escalan parcialmente.</p>
-          <div style={{fontSize:13,fontWeight:600,color:C.bark,marginBottom:10}}>Utilidad mensual</div>
-          <BC data={calc.proy.map(p=>({label:`M${p.mes}`,value:Math.max(p.utilidad,0),hl:p.utilidad<0}))} color={C.leaf} height={140}/>
-          <div style={{marginTop:20,fontSize:13,fontWeight:600,color:C.bark,marginBottom:10}}>Flujo acumulado</div>
-          <BC data={calc.proy.map(p=>({label:`M${p.mes}`,value:Math.max(p.acum,0),hl:p.acum<0}))} color={C.earth} height={140}/>
-          <div style={{overflowX:"auto",marginTop:16}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:11,fontFamily:"'DM Mono',monospace"}}>
-              <thead><tr style={{borderBottom:`2px solid ${C.warm}`}}>{["Mes","Hog","Emp","Ingreso","Costo","Util.","Acum."].map(h=><th key={h} style={{padding:"6px 4px",textAlign:"right",fontSize:10,fontWeight:600,color:C.barkL}}>{h}</th>)}</tr></thead>
-              <tbody>{calc.proy.map(p=><tr key={p.mes} style={{borderBottom:`1px solid ${C.ghost}`}}>
-                <td style={{padding:"5px 4px",textAlign:"right",fontWeight:600}}>{p.mes}</td>
-                <td style={{padding:"5px 4px",textAlign:"right"}}>{p.hog}</td>
-                <td style={{padding:"5px 4px",textAlign:"right"}}>{p.emp}</td>
-                <td style={{padding:"5px 4px",textAlign:"right",color:C.earth}}>{f$(p.ingreso)}</td>
-                <td style={{padding:"5px 4px",textAlign:"right",color:C.danger}}>{f$(p.costo)}</td>
-                <td style={{padding:"5px 4px",textAlign:"right",color:p.utilidad>=0?C.success:C.danger,fontWeight:600}}>{f$(p.utilidad)}</td>
-                <td style={{padding:"5px 4px",textAlign:"right",color:p.acum>=0?C.success:C.danger,fontWeight:600}}>{f$(p.acum)}</td>
-              </tr>)}</tbody>
-            </table>
-          </div>
-        </Sec>
-        <Sec title="Resumen anual" icon="🗓️" accent={C.amber}>
-          <div style={{display:"flex",flexWrap:"wrap",gap:10}}><MC label="Ingreso anual" value={f$(calc.proy.reduce((s,p)=>s+p.ingreso,0))} color={C.earth} large/><MC label="Utilidad anual" value={f$(calc.proy.reduce((s,p)=>s+p.utilidad,0))} color={calc.proy.reduce((s,p)=>s+p.utilidad,0)>0?C.success:C.danger} large/></div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:10,marginTop:10}}><MC label="Clientes mes 12" value={(calc.proy[11]?.hog||0)+(calc.proy[11]?.emp||0)} color={C.leaf}/><MC label="Recuperación" value={(()=>{const m=calc.proy.findIndex(p=>p.acum>=0);return m>=0?`Mes ${m+1}`:"No alcanzado";})()} color={C.amber}/></div>
-        </Sec>
-        <div style={{background:`${C.earth}08`,borderRadius:14,padding:"16px 14px",border:`1px solid ${C.earth}15`}}>
-          <div style={{fontSize:12,fontWeight:700,color:C.earth,marginBottom:8}}>📝 Notas</div>
-          <div style={{fontSize:11,color:C.barkL,lineHeight:1.7}}>
-            <strong>IESS:</strong> Patronal 11.15% solo tiempo completo.<br/>
-            <strong>RIMPE:</strong> 2% sobre ingresos. 15% participación trabajadores.<br/>
-            <strong>Depreciación:</strong> (costo − valor residual) ÷ vida útil.<br/>
-            <strong>Amortización:</strong> Certificaciones e intangibles en períodos razonables (1-5 años según tipo).<br/>
-            <strong>Nota:</strong> Herramienta de referencia. Consulte un contador.
-          </div>
+      <Sec title="Desgaste de equipos" icon="🔧" accent={C.amber}>
+        <IB color={C.amber}>💡 Si tiene reventa (vehículos), pon el valor residual.</IB>
+        {assets.map(a=><AssetCard key={a.id} a={a} onChange={u=>setAssets(assets.map(x=>x.id===a.id?u:x))} onRemove={()=>setAssets(assets.filter(x=>x.id!==a.id))} showRes={true}/>)}
+        <button onClick={addA} style={{width:"100%",padding:"10px",border:`1.5px dashed ${C.amber}60`,borderRadius:10,background:`${C.amber}08`,color:C.amber,fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Equipo</button>
+        <div style={{background:`${C.amber}15`,borderRadius:10,padding:"12px 14px",marginTop:12}}>
+          <span style={{fontSize:12,color:C.barkL}}>Depreciación: </span><span style={{fontSize:17,fontWeight:700,color:C.amber,fontFamily:"'DM Mono',monospace"}}>{f$(R.depM)}/mes</span>
         </div>
-        <button onClick={dlReport} style={{width:"100%",padding:"16px",border:"none",borderRadius:14,marginTop:16,background:`linear-gradient(135deg,${C.earth} 0%,${C.leaf} 100%)`,color:C.white,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:`0 4px 16px ${C.earth}44`}}>📥 Descargar reporte</button>
-      </>}
+      </Sec>
+
+      <Sec title="Certificaciones y permisos" icon="📜" accent={C.leaf}>
+        <IB color={C.leaf}>💡 Marca las que tienes. El costo se amortiza automáticamente.</IB>
+        {certs.map((c,i)=><label key={c.id} style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:10,cursor:"pointer"}}>
+          <input type="checkbox" checked={c.on} onChange={e=>{const n=[...certs];n[i]={...n[i],on:e.target.checked};setCerts(n);}} style={{marginTop:3,accentColor:C.leaf,width:18,height:18}}/>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:600,color:C.bark}}>{c.label}</div>
+            <div style={{display:"flex",gap:8,marginTop:4,alignItems:"center",flexWrap:"wrap"}}>
+              <span style={{fontSize:11,color:C.barkL}}>$</span>
+              <input type="number" value={c.valor} min={0} onChange={e=>{const n=[...certs];n[i]={...n[i],valor:Number(e.target.value)};setCerts(n);}}
+                style={{width:80,padding:"4px 6px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,fontFamily:"'DM Mono',monospace",textAlign:"right",outline:"none"}}/>
+              <span style={{fontSize:11,color:C.barkL}}>→ {f$(c.anios>0?c.valor/(c.anios*12):0)}/mes ({c.anios}a)</span>
+            </div>
+          </div>
+        </label>)}
+        {ccerts.map((c,i)=><div key={c.id} style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:10}}>
+          <input type="checkbox" checked={c.on} onChange={e=>{const n=[...ccerts];n[i]={...n[i],on:e.target.checked};setCCerts(n);}} style={{marginTop:3,accentColor:C.leaf,width:18,height:18}}/>
+          <div style={{flex:1}}>
+            <input type="text" value={c.label} placeholder="Otra certificación..." onChange={e=>{const n=[...ccerts];n[i]={...n[i],label:e.target.value};setCCerts(n);}}
+              style={{width:"100%",padding:"4px 8px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:13,outline:"none",marginBottom:4,boxSizing:"border-box"}}/>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <span style={{fontSize:11,color:C.barkL}}>$</span>
+              <input type="number" value={c.valor} min={0} onChange={e=>{const n=[...ccerts];n[i]={...n[i],valor:Number(e.target.value)};setCCerts(n);}}
+                style={{width:70,padding:"4px 6px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,fontFamily:"'DM Mono',monospace",textAlign:"right",outline:"none"}}/>
+              <span style={{fontSize:11,color:C.barkL}}>en</span>
+              <select value={c.anios} onChange={e=>{const n=[...ccerts];n[i]={...n[i],anios:Number(e.target.value)};setCCerts(n);}}
+                style={{padding:"4px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,outline:"none"}}>
+                {[1,2,3,5].map(y=><option key={y} value={y}>{y}a</option>)}
+              </select>
+            </div>
+          </div>
+          <button onClick={()=>setCCerts(ccerts.filter((_,j)=>j!==i))} style={{width:22,height:22,border:"none",borderRadius:4,background:`${C.danger}15`,color:C.danger,cursor:"pointer",fontSize:12}}>×</button>
+        </div>)}
+        <button onClick={addCC} style={{width:"100%",padding:"8px",border:`1.5px dashed ${C.leaf}60`,borderRadius:10,background:`${C.leaf}08`,color:C.leaf,fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Otra certificación</button>
+
+        <div style={{marginTop:16,fontSize:13,fontWeight:700,color:C.bark,marginBottom:8}}>Otros gastos iniciales</div>
+        {intFijos.map((fi,i)=><label key={fi.id} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,cursor:"pointer"}}>
+          <input type="checkbox" checked={fi.on} onChange={e=>{const n=[...intFijos];n[i]={...n[i],on:e.target.checked};setIF(n);}} style={{accentColor:C.leaf,width:18,height:18}}/>
+          <span style={{flex:1,fontSize:13,color:C.bark}}>{fi.nombre}</span>
+          <input type="number" value={fi.valor} min={0} onChange={e=>{const n=[...intFijos];n[i]={...n[i],valor:Number(e.target.value)};setIF(n);}}
+            style={{width:70,padding:"4px 6px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,fontFamily:"'DM Mono',monospace",textAlign:"right",outline:"none"}}/>
+          <span style={{fontSize:10,color:C.barkL}}>/{fi.anios}a</span>
+        </label>)}
+
+        <div style={{background:`${C.leaf}15`,borderRadius:10,padding:"12px 14px",marginTop:12}}>
+          <span style={{fontSize:12,color:C.barkL}}>Amortización: </span><span style={{fontSize:17,fontWeight:700,color:C.leaf,fontFamily:"'DM Mono',monospace"}}>{f$(R.amortM)}/mes</span>
+        </div>
+        <div style={{background:`${C.earth}10`,borderRadius:10,padding:"12px 14px",marginTop:10,border:`1px solid ${C.earth}20`}}>
+          <span style={{fontSize:12,color:C.barkL}}>Depreciación + amortización: </span><span style={{fontSize:17,fontWeight:700,color:C.earth,fontFamily:"'DM Mono',monospace"}}>{f$(R.desgM)}/mes</span>
+        </div>
+      </Sec>
+
+      <Sec title="Otros costos fijos" icon="🏢" accent={C.bark}>
+        <Inp label="Arriendo" value={arriendo} onChange={setArr} unit="$/mes" hint="Valles: $150-400"/>
+        <Inp label="Agua" value={agua} onChange={setAgua} unit="$/mes"/>
+        <Inp label="Luz" value={luz} onChange={setLuz} unit="$/mes"/>
+        <Inp label="Marketing / community manager" value={mktCM} onChange={setMktCM} unit="$/mes"/>
+        <Inp label="Pauta publicitaria" value={mktPauta} onChange={setMktP} unit="$/mes"/>
+        <Inp label="Otros costos fijos" value={otrosF} onChange={setOtrosF} unit="$/mes"/>
+        {otrosF>0&&<Txt label="¿Qué incluyen?" value={otrosFD} onChange={setOtrosFD} placeholder="Seguro, contador..." multiline/>}
+        <div style={{background:`${C.bark}0D`,borderRadius:10,padding:"12px 14px",marginTop:8}}>
+          <span style={{fontSize:12,color:C.barkL}}>Total fijos: </span><span style={{fontSize:17,fontWeight:700,color:C.bark,fontFamily:"'DM Mono',monospace"}}>{f$(R.cf)}</span>
+        </div>
+      </Sec>
+
+      <Sec title="Costos variables" icon="⛽" accent={C.barkL}>
+        <Sel label="Tipo de transporte" value={tipoTrans} onChange={setTipoTrans} options={TRANS}/>
+        {(tipoTrans==="vehiculo"||tipoTrans==="moto"||tipoTrans==="bicicargo"||tipoTrans==="mixto")&&
+          <Inp label={tipoTrans==="bicicargo"?"Mantenimiento bici":"Combustible"} value={combustible} onChange={setComb} unit="$/mes"/>}
+        {(tipoTrans==="publico"||tipoTrans==="mixto")&&
+          <Inp label="Pasajes transporte público" value={transPub} onChange={setTransPub} unit="$/mes" hint="Buses, trole, ecovía"/>}
+        {tipoTrans!=="publico"&&<Inp label="Mantenimiento vehículo" value={mantVeh} onChange={setMantVeh} unit="$/mes"/>}
+        <Inp label="Insumos compostaje" value={insumos} onChange={setInsumos} unit="$/mes" hint="Material seco, microorganismos"/>
+        <Inp label="Baldes / contenedores" value={baldes} onChange={setBaldes} unit="$/mes"/>
+        <Inp label="Otros variables" value={otrosV} onChange={setOtrosV} unit="$/mes"/>
+        <div style={{background:`${C.barkL}0D`,borderRadius:10,padding:"12px 14px",marginTop:8}}>
+          <span style={{fontSize:12,color:C.barkL}}>Total variables: </span><span style={{fontSize:17,fontWeight:700,color:C.barkL,fontFamily:"'DM Mono',monospace"}}>{f$(R.cv)}</span>
+        </div>
+      </Sec>
+
+      <Sec title="Inversión inicial" icon="🏗️" accent={C.amber}>
+        <Inp label="Equipos" value={R.invAct} onChange={()=>{}} unit="$" disabled/>
+        <Inp label="Certificaciones + intangibles" value={R.invIntang} onChange={()=>{}} unit="$" disabled/>
+        <Inp label="Capital de trabajo" value={capTrab} onChange={setCapTrab} unit="$" hint="Primeros meses"/>
+        <div style={{background:`${C.amber}15`,borderRadius:10,padding:"12px 14px",marginTop:8}}>
+          <span style={{fontSize:12,color:C.barkL}}>Inversión total: </span><span style={{fontSize:17,fontWeight:700,color:C.amber,fontFamily:"'DM Mono',monospace"}}>{f$(R.invT)}</span>
+        </div>
+      </Sec>
+    </>}
+
+    {tab==="ingresos"&&<>
+      <Sec title="Tarifas" icon="💳">
+        <IB>💡 Las tarifas se configuran por plan en Costos. Aquí el resumen.</IB>
+        <div style={{fontSize:13,fontWeight:700,color:C.earth,marginBottom:8}}>🏠 Hogares ({R.hog})</div>
+        {hTiers.filter(t=>t.cantidad>0).map(t=><div key={t.id} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"4px 0",color:C.bark}}>
+          <span>{t.plan} ({t.cantidad}) — {FREQ.find(o=>o.value===t.frecuencia)?.label} — {f$(t.tarifa)}/mes</span>
+          <span style={{fontFamily:"'DM Mono',monospace",fontWeight:600}}>{f$(t.cantidad*t.tarifa)}</span>
+        </div>)}
+        <div style={{background:C.ghost,borderRadius:10,padding:"10px 14px",margin:"8px 0 16px"}}><span style={{fontSize:12,color:C.barkL}}>Hogares: </span><span style={{fontSize:15,fontWeight:700,color:C.earth,fontFamily:"'DM Mono',monospace"}}>{f$(R.incH)}/mes</span></div>
+        {R.emp>0&&<><div style={{fontSize:13,fontWeight:700,color:C.earthL,marginBottom:8}}>🏢 Empresas ({R.emp})</div>
+        {eTiers.filter(t=>t.cantidad>0).map(t=><div key={t.id} style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"4px 0",color:C.bark}}>
+          <span>{t.tipo} ({t.cantidad}) — {FREQ.find(o=>o.value===t.frecuencia)?.label} — {f$(t.tarifa)}/mes</span>
+          <span style={{fontFamily:"'DM Mono',monospace",fontWeight:600}}>{f$(t.cantidad*t.tarifa)}</span>
+        </div>)}
+        <div style={{background:C.ghost,borderRadius:10,padding:"10px 14px",margin:"8px 0 16px"}}><span style={{fontSize:12,color:C.barkL}}>Empresas: </span><span style={{fontSize:15,fontWeight:700,color:C.earthL,fontFamily:"'DM Mono',monospace"}}>{f$(R.incE)}/mes</span></div></>}
+        <div style={{background:`${C.earth}10`,borderRadius:10,padding:"12px 14px",border:`1px solid ${C.earth}20`}}>
+          <span style={{fontSize:12,color:C.barkL}}>Total suscripciones: </span><span style={{fontSize:17,fontWeight:700,color:C.earth,fontFamily:"'DM Mono',monospace"}}>{f$(R.incSusc)}/mes</span>
+        </div>
+      </Sec>
+      <Sec title="Venta de compost" icon="🌿" accent={C.leaf}>
+        <Inp label="Conversión residuo → compost" value={tasaConv} onChange={setTasaConv} unit="%" min={10} max={50} hint="25-35%"/>
+        <Inp label="% a la venta" value={pctVenta} onChange={setPctV} unit="%" max={100}/>
+        <Inp label="Precio/kg" value={precioKg} onChange={setPrecioKg} unit="$/kg" step={0.05} hint="$0.25-0.80"/>
+        <div style={{background:`${C.leaf}0D`,borderRadius:10,padding:"12px 14px"}}>
+          <div style={{fontSize:12,color:C.barkL}}>{fN(R.kgComp)} kg/mes</div>
+          <span style={{fontSize:17,fontWeight:700,color:C.leaf,fontFamily:"'DM Mono',monospace"}}>{f$(R.incComp)}/mes</span>
+        </div>
+      </Sec>
+      <Sec title="Otros" icon="✨" accent={C.amber}><Inp label="Talleres, bonos, consultoría" value={otrosIng} onChange={setOtrosIng} unit="$/mes"/></Sec>
+      <div style={{background:`linear-gradient(135deg,${C.earth},${C.leaf})`,borderRadius:16,padding:"20px 18px",color:C.white}}>
+        <div style={{fontSize:12,fontWeight:600,opacity:0.8,marginBottom:4}}>INGRESO TOTAL MENSUAL</div>
+        <div style={{fontSize:28,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{f$(R.incTotal)}</div>
+      </div>
+    </>}
+
+    {(tab==="resultados"||tab==="proyeccion")&&!canView&&
+      <Sec title="Desbloquea resultados" icon="🔐">
+        <IB>Completa tu info en Costos y envía para ver resultados.</IB>
+        {!nombre.trim()&&<p style={{color:C.danger,fontSize:13,fontWeight:600}}>⚠️ Ingresa el nombre de tu empresa primero</p>}
+        {nombre.trim()&&<button onClick={enviar} disabled={sending} style={{width:"100%",padding:"14px",border:"none",borderRadius:12,background:sending?"#ccc":`linear-gradient(135deg,${C.earth},${C.leaf})`,color:C.white,fontSize:15,fontWeight:700,cursor:sending?"wait":"pointer",boxShadow:`0 4px 16px ${C.earth}44`}}>
+          {sending?"Enviando...":"🚀 Enviar y ver resultados"}
+        </button>}
+        {sendError&&<p style={{color:C.amber,fontSize:12,marginTop:8}}>{sendError}</p>}
+      </Sec>}
+
+    {tab==="resultados"&&canView&&<>
+      <Sec title={`Resultados — ${nombre}`} icon="📋">
+        {[
+          {l:"Ingresos totales",v:R.incTotal,b:true,c:C.earth},
+          {l:"  Hogares",v:R.incH,in:true},{l:"  Empresas",v:R.incE,in:true},{l:"  Compost",v:R.incComp,in:true},{l:"  Otros",v:otrosIng,in:true},
+          {d:true},
+          {l:"(-) Mano obra TC",v:R.costoTC,c:C.danger},{l:"(-) Jornaleros",v:R.costoJ,c:C.danger},
+          {l:"(-) Arriendo",v:arriendo,c:C.danger},{l:"(-) Agua+Luz",v:servBas,c:C.danger},
+          {l:"(-) Depreciación",v:R.depM,c:C.danger},{l:"(-) Amortización",v:R.amortM,c:C.danger},
+          {l:"(-) Marketing",v:mkt,c:C.danger},
+          otrosF>0?{l:`(-) ${otrosFD||"Otros fijos"}`,v:otrosF,c:C.danger}:null,
+          {l:"(-) Variables",v:R.cv,c:C.danger},
+          {d:true},
+          {l:"= Utilidad bruta",v:R.uBruta,b:true,c:R.uBruta>=0?C.success:C.danger},
+          {l:"(-) 15% Particip.",v:R.partTrab,c:C.barkL},{l:"(-) RIMPE 2%",v:R.impR,c:C.barkL},
+          {d:true},
+          {l:"= UTILIDAD NETA",v:R.uNeta,b:true,big:true,c:R.uNeta>=0?C.success:C.danger},
+        ].filter(Boolean).map((r,i)=>r.d?<div key={i} style={{borderTop:`1px dashed ${C.warm}`,margin:"8px 0"}}/>:
+          <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:r.big?16:r.in?12:13,fontWeight:r.b?700:400,color:r.c||C.soil}}>
+            <span>{r.l}</span><span style={{fontFamily:"'DM Mono',monospace",fontWeight:r.b?700:500}}>{f$(r.v)}</span>
+          </div>)}
+        <div style={{marginTop:12}}><PB label="Margen bruto" value={Math.max(R.mBruto,0)} max={100} color={R.mBruto>20?C.success:C.amber}/><PB label="Margen neto" value={Math.max(R.mNeto,0)} max={100} color={R.mNeto>10?C.success:C.amber}/></div>
+      </Sec>
+
+      <Sec title="Indicadores" icon="🎯" accent={C.amber}>
+        <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:14}}><MC label="Costo/cliente" value={f$(R.costoPorCli)} sub="mensual" color={C.bark}/><MC label="Costo/kg" value={f$(R.costoPorKg)} sub="residuo" color={C.barkL}/></div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:10}}><MC label="ROI anual" value={`${fN(R.roi)}%`} color={R.roi>0?C.success:C.danger}/><MC label="Recuperación" value={R.mesRec===Infinity?"N/A":`${fN(R.mesRec)} meses`} color={R.mesRec<=12?C.success:C.amber}/></div>
+      </Sec>
+
+      <Sec title="Punto de equilibrio" icon="⚖️">
+        <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:16}}>
+          <MC label="Clientes mínimos" value={Math.ceil(Math.max(R.cliEq,0))} sub={`tarifa prom ${f$(R.tarifaProm)}`} color={R.totalCli>=R.cliEq?C.success:C.danger} large/>
+          <MC label="Tarifa equilibrio" value={f$(Math.max(R.tarifaEq,0))} sub={`con ${R.totalCli} clientes`} color={R.tarifaProm>=R.tarifaEq?C.success:C.danger} large/>
+        </div>
+        <div style={{marginTop:16,padding:"14px",background:ok?`${C.success}10`:`${C.danger}10`,borderRadius:12,border:`1px solid ${ok?C.success:C.danger}30`}}>
+          <div style={{fontSize:14,fontWeight:700,color:ok?C.success:C.danger,marginBottom:4}}>{ok?"✅ Rentable":"⚠️ Aún no rentable"}</div>
+          <div style={{fontSize:12,color:C.barkL}}>{ok?`${R.totalCli} clientes → ${f$(R.uNeta)} netos/mes.`:`Necesitas ${Math.ceil(Math.max(R.cliEq,0))} clientes o ajustar tarifas.`}</div>
+        </div>
+      </Sec>
+
+      <button onClick={descargar} style={{width:"100%",padding:"16px",border:"none",borderRadius:14,background:`linear-gradient(135deg,${C.earth},${C.leaf})`,color:C.white,fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:16,boxShadow:`0 4px 16px ${C.earth}44`}}>📥 Descargar reporte de {nombre}</button>
+    </>}
+
+    {tab==="proyeccion"&&canView&&<>
+      <Sec title="Proyección 12 meses" icon="📈">
+        <p style={{fontSize:12,color:C.barkL,margin:"0 0 14px"}}>Crecimiento 5%/mes en clientes.</p>
+        <div style={{fontSize:13,fontWeight:600,color:C.bark,marginBottom:10}}>Utilidad mensual</div>
+        <BC data={R.proy.map(p=>({label:`M${p.mes}`,value:Math.max(p.util,0),hl:p.util<0}))} color={C.leaf} height={140}/>
+        <div style={{marginTop:20,fontSize:13,fontWeight:600,color:C.bark,marginBottom:10}}>Flujo acumulado</div>
+        <BC data={R.proy.map(p=>({label:`M${p.mes}`,value:Math.max(p.acum,0),hl:p.acum<0}))} color={C.earth} height={140}/>
+        <div style={{overflowX:"auto",marginTop:16}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:11,fontFamily:"'DM Mono',monospace"}}>
+            <thead><tr style={{borderBottom:`2px solid ${C.warm}`}}>{["Mes","Hog","Emp","Ingreso","Costo","Util.","Acum."].map(h=><th key={h} style={{padding:"6px 4px",textAlign:"right",fontSize:10,fontWeight:600,color:C.barkL}}>{h}</th>)}</tr></thead>
+            <tbody>{R.proy.map(p=><tr key={p.mes} style={{borderBottom:`1px solid ${C.ghost}`}}>
+              <td style={{padding:"5px 4px",textAlign:"right",fontWeight:600}}>{p.mes}</td>
+              <td style={{padding:"5px 4px",textAlign:"right"}}>{p.hog}</td>
+              <td style={{padding:"5px 4px",textAlign:"right"}}>{p.emp}</td>
+              <td style={{padding:"5px 4px",textAlign:"right",color:C.earth}}>{f$(p.ingreso)}</td>
+              <td style={{padding:"5px 4px",textAlign:"right",color:C.danger}}>{f$(p.costo)}</td>
+              <td style={{padding:"5px 4px",textAlign:"right",color:p.util>=0?C.success:C.danger,fontWeight:600}}>{f$(p.util)}</td>
+              <td style={{padding:"5px 4px",textAlign:"right",color:p.acum>=0?C.success:C.danger,fontWeight:600}}>{f$(p.acum)}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </Sec>
+      <Sec title="Resumen anual" icon="🗓️" accent={C.amber}>
+        <div style={{display:"flex",flexWrap:"wrap",gap:10}}><MC label="Ingreso anual" value={f$(R.proy.reduce((s,p)=>s+p.ingreso,0))} color={C.earth} large/><MC label="Utilidad anual" value={f$(R.proy.reduce((s,p)=>s+p.util,0))} color={R.proy.reduce((s,p)=>s+p.util,0)>0?C.success:C.danger} large/></div>
+      </Sec>
+      <button onClick={descargar} style={{width:"100%",padding:"16px",border:"none",borderRadius:14,marginTop:16,background:`linear-gradient(135deg,${C.earth},${C.leaf})`,color:C.white,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:`0 4px 16px ${C.earth}44`}}>📥 Descargar reporte de {nombre}</button>
+    </>}
+
     </div>
-
     <div style={{padding:"20px 16px 32px",textAlign:"center"}}>
-      <div style={{fontSize:10,color:C.barkL,lineHeight:1.6}}>Calculadora de referencia · No constituye asesoría contable<br/>melanievalencia.com · Quito, 2025</div>
+      <div style={{fontSize:10,color:C.barkL}}>Herramienta de referencia · No constituye asesoría contable<br/>melanievalencia.com · Quito, 2025</div>
     </div>
   </div>;
 }
