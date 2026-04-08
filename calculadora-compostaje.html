@@ -22,6 +22,12 @@ input,select,textarea,button{font-family:inherit}
 const {useState,useMemo,useCallback}=React;
 
 
+// ══════════════════════════════════════════
+// CONFIGURACIÓN: Pega aquí tu URL de Google Apps Script
+// ══════════════════════════════════════════
+const GOOGLE_SCRIPT_URL = ""; // ← PEGA TU URL AQUÍ
+// ══════════════════════════════════════════
+
 const C={earth:"#2D5016",earthL:"#3A6B1E",leaf:"#5B8C2A",lime:"#A4D65E",cream:"#FFF8E7",warm:"#F5E6C8",bark:"#5C3D2E",barkL:"#7A5642",soil:"#3E2723",amber:"#E8A317",danger:"#C0392B",success:"#27AE60",white:"#FFFFFF",ghost:"rgba(45,80,22,0.06)"};
 const f$=v=>`$${Number(v).toFixed(2)}`;
 const fN=v=>Number(v).toLocaleString("es-EC",{maximumFractionDigits:1});
@@ -543,8 +549,30 @@ function App(){
 
   const enviar=useCallback(async()=>{
     if(!nombre.trim())return;setSending(true);setSendError("");
-    try{setSub(true);}catch(e){setSendError("Error");setSub(true);}setSending(false);
-  },[nombre]);
+    const payload={
+      empresa:nombre.trim(),email:email.trim(),tel:tel.trim(),
+      hogares:R.hog,empresasClientes:R.emp,kgMensuales:R.kgM,kgCompost:R.kgComp,
+      ingresoHogares:R.incH,ingresoEmpresas:R.incE,ingresoCompost:R.incComp,otrosIngresos:otrosIng,ingresoTotal:R.incTotal,
+      costosFijos:R.cf,costosVariables:R.cv,costoTotal:R.costoT,
+      utilidadBruta:R.uBruta,utilidadNeta:R.uNeta,margenNeto:R.mNeto,
+      clientesEquilibrio:Math.ceil(Math.max(R.cliEq,0)),tarifaEquilibrio:R.tarEq,roi:R.roi,
+      inversionTotal:R.invT,mesesRecuperacion:R.mesRec===Infinity?"N/A":Math.round(R.mesRec*10)/10,
+      tipoTransporte:tipoTr,
+      certificaciones:[...certs.filter(c=>c.on),...ccerts.filter(c=>c.on)].map(c=>c.label),
+      hogarTiers:hTiers.filter(t=>t.cantidad>0),empresaTiers:eTiers.filter(t=>t.cantidad>0),
+      co2eAnio:R.co2eAnio,
+    };
+    try{
+      if(GOOGLE_SCRIPT_URL){
+        await fetch(GOOGLE_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)});
+      }
+      setSub(true);
+    }catch(e){
+      setSendError("Error al enviar. Tus resultados están disponibles de todas formas.");
+      setSub(true);
+    }
+    setSending(false);
+  },[nombre,email,tel,R,tipoTr,certs,ccerts,hTiers,eTiers,otrosIng]);
 
   const addBtn=(color,onClick,label)=><button onClick={onClick} style={{width:"100%",padding:"9px",border:`1.5px dashed ${color}60`,borderRadius:10,background:`${color}08`,color,fontSize:12,fontWeight:600,cursor:"pointer",marginTop:3}}>{label}</button>;
 
