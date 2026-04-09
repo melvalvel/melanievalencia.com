@@ -23,7 +23,26 @@ const {useState,useMemo,useCallback}=React;
 // ══════════════════════════════════════════
 // CONFIGURACIÓN: Pega aquí tu URL de Google Apps Script
 // ══════════════════════════════════════════
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx5MUUC9oD5XNni8ww2QgY4tScLlZX6Qelf14XVynd69ucZH4SbWrBfUn5wnsFBgo9iFQ/exec"; // ← PEGA TU URL AQUÍ
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7qpnr-zN_V4VIg5CY3LZaxzQQAoZm-K7iuU-FlxBoIWF0fR132neAMCMbg1rC7ZwM/exec"; // pega tu URL de Apps Script
+
+function enviarDatos(datos) {
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(datos)
+  })
+  .then(res => res.text())
+  .then(res => {
+    console.log("Respuesta:", res);
+    alert("Datos enviados correctamente");
+  })
+  .catch(err => {
+    console.error("Error:", err);
+    alert("Error al enviar datos");
+  });
+}
 // ══════════════════════════════════════════
 
 
