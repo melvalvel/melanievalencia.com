@@ -216,6 +216,8 @@ function App(){
   const [submitted,setSub]=useState(false);
   const [sending,setSending]=useState(false);
   const [sendError,setSendError]=useState("");
+  const [anioInicio,setAnioInicio]=useState(2024);
+  const [ubicaciones,setUbicaciones]=useState("");
 
   const [hTiers,setHT]=useState([
     {id:1,plan:"Semanal",cantidad:50,kgPorRecol:4,frecuencia:4,tarifa:10},
@@ -243,6 +245,14 @@ function App(){
   const [mktP,setMktP]=useState(20);
   const [otrosF,setOtrosF]=useState(0);
   const [otrosFD,setOtrosFD]=useState("");
+  const [costosAdmin,setCostosAdmin]=useState(0);
+  const [costosAdminD,setCostosAdminD]=useState("");
+  const [seguroVeh,setSeguroVeh]=useState(0);
+  const [mantAceite,setMantAceite]=useState(20);
+  const [mantOtros,setMantOtros]=useState(20);
+  const [mantOtrosD,setMantOtrosD]=useState("");
+  const [gastoMayorVeh,setGastoMayorVeh]=useState(0);
+  const [gastoMayorVehD,setGastoMayorVehD]=useState("");
   const [assets,setAssets]=useState([
     {id:1,nombre:"Vehículo (camioneta/furgón)",valor:8000,vidaAnios:5,residual:2000},
     {id:2,nombre:"Compostera",valor:800,vidaAnios:5,residual:0},
@@ -277,7 +287,8 @@ function App(){
 
   const servBas=agua+luz;const mkt=mktCM+mktP;
   const costoTr=tipoTr==="publico"?trPub:(comb+(tipoTr==="mixto"?trPub:0));
-  const mntV=tipoTr==="publico"?0:mantV;
+  const mntV=tipoTr==="publico"?0:(mantAceite+mantOtros);
+  const gastoMayorMes=gastoMayorVeh/12; // amortizado a 12 meses
 
   const R=useMemo(()=>{
     const hog=hTiers.reduce((s,t)=>s+t.cantidad,0);
@@ -313,8 +324,8 @@ function App(){
     const costoWorkers=workersCalc.reduce((s,w)=>s+w.costoTotal,0);
     const costoJ=numJ*pagoJ*diasJ;
     const mobra=costoWorkers+costoJ;
-    const cf=arriendo+mobra+servBas+desgM+mkt+otrosF;
-    const cv=costoTr+mntV+insumos+baldes+otrosV;
+    const cf=arriendo+mobra+servBas+desgM+mkt+costosAdmin+seguroVeh+otrosF;
+    const cv=costoTr+mntV+gastoMayorMes+insumos+baldes+otrosV;
     const costoT=cf+cv;
     const incSusc=incH+incE;const incComp=Math.min(kgVend,kgComp)*precKg;const incTotal=incSusc+incComp+otrosIng;
     const uBruta=incTotal-costoT;const mBruto=incTotal>0?(uBruta/incTotal)*100:0;
@@ -412,7 +423,7 @@ function App(){
     const kmAuto = co2eAnio / 0.00021;    // auto promedio emite ~210 g CO2/km
 
     return {hog,emp,kgH,kgE,kgM,kgComp,depM,amortM,desgM,invAct,invInt,invT,workersCalc,costoWorkers,costoJ,mobra,cf,cv,costoT,incH,incE,incSusc,incComp,incTotal,uBruta,mBruto,partT,impR,uNeta,mNeto,totalCli,costoCli,tarProm,tarEq,cliEq,costoKg,mesRec,roi,proy,co2eMes,co2eAnio,co2eCompostajeEvitado,co2TransAnio,co2TransMes,galMes,arboles,kmAuto,tonResiduosAnio,ch4EvitadoAnio,ch4CompostajeAnio,ch4NetoAnio,n2oCompostajeAnio,co2BiogenicoAnio,ch4NetoCo2eq,n2oCo2eq};
-  },[hTiers,eTiers,workers,numJ,pagoJ,diasJ,arriendo,servBas,mkt,otrosF,assets,certs,ccerts,intF,costoTr,mntV,insumos,baldes,otrosV,kgVend,precKg,tasaC,otrosIng,capTrab,tipoComb,comb]);
+  },[hTiers,eTiers,workers,numJ,pagoJ,diasJ,arriendo,servBas,mkt,costosAdmin,seguroVeh,otrosF,assets,certs,ccerts,intF,costoTr,mntV,gastoMayorMes,insumos,baldes,otrosV,kgVend,precKg,tasaC,otrosIng,capTrab,tipoComb,comb]);
 
   const ok=R.uNeta>0;const canView=submitted&&nombre.trim().length>0;
 
@@ -425,6 +436,8 @@ function App(){
     const res=[
       ["REPORTE FINANCIERO",nombre.toUpperCase()],
       ["Fecha",new Date().toLocaleDateString("es-EC")],
+      ["Año de inicio",anioInicio],
+      ["Ubicación(es)",ubicaciones],
       ["Email",email],["Teléfono",tel],
       [],
       ["RESUMEN EJECUTIVO","","Valor","Unidad"],
@@ -451,6 +464,8 @@ function App(){
       ["  Amortización intangibles",null,R.amortM,""],
       ["  Marketing / Community Manager",null,mktCM,""],
       ["  Pauta publicitaria",null,mktP,""],
+      costosAdmin>0?["  Costos administrativos",null,costosAdmin,costosAdminD]:null,
+      seguroVeh>0?["  Seguro vehicular",null,seguroVeh,""]:null,
       otrosF>0?["  "+otrosFD||"Otros fijos",null,otrosF,""]:null,
       [],
       ["(-) Costos variables",null,R.cv,R.incTotal>0?R.cv/R.incTotal:0],
@@ -486,6 +501,10 @@ function App(){
     const sup=[
       ["SUPUESTOS — MODIFICA ESTOS VALORES","","Valor actual","Notas"],
       [],
+      ["DATOS GENERALES"],
+      ["Año de inicio",null,anioInicio,""],
+      ["Ubicación(es)",null,ubicaciones,""],
+      [],
       ["HOGARES POR PLAN"],
       ["Plan","Cantidad","kg/recol.","Frecuencia/mes","Tarifa $/mes"],
       ...hTiers.map(t=>[t.plan,t.cantidad,t.kgPorRecol,t.frecuencia,t.tarifa]),
@@ -507,6 +526,8 @@ function App(){
       ["Luz",null,luz,""],
       ["Marketing / Community Manager",null,mktCM,""],
       ["Pauta publicitaria",null,mktP,""],
+      ["Costos administrativos",null,costosAdmin,costosAdminD],
+      ["Seguro vehicular",null,seguroVeh,"Mensual"],
       ["Otros fijos",null,otrosF,otrosFD],
       [],
       ["COSTOS VARIABLES"],
@@ -515,7 +536,9 @@ function App(){
       ["Gasto combustible $/mes",null,comb,""],
       ["Galones estimados/mes",null,Math.round(R.galMes*10)/10,"Calculado: gasto ÷ precio/galón"],
       ["Emisiones transporte tCO₂/año",null,Math.round(R.co2TransAnio*1000)/1000,""],
-      ["Mantenimiento vehículo",null,mntV,""],
+      ["Cambio de aceite y filtros",null,mantAceite,"$/mes"],
+      ["Otros mantenimientos vehículo",null,mantOtros,mantOtrosD],
+      ["Gastos mayores vehículo (anual)",null,gastoMayorVeh,gastoMayorVehD],
       ["Insumos compostaje",null,insumos,insumosD],
       ["Baldes/contenedores",null,baldes,""],
       ["Otros variables",null,otrosV,otrosVD],
@@ -594,13 +617,29 @@ function App(){
     a.href=url;a.download=`Reporte_${nombre.replace(/\s+/g,"_")}_${new Date().toISOString().slice(0,10)}.xlsx`;
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  },[nombre,email,tel,hTiers,eTiers,R,otrosIng,otrosIngItems,workers,numJ,pagoJ,diasJ,arriendo,agua,luz,mktCM,mktP,otrosF,otrosFD,tipoTr,tipoComb,costoTr,mntV,insumos,insumosD,baldes,otrosV,otrosVD,tasaC,tipoCompostaje,kgVend,precKg,capTrab,assets,certs,ccerts,intF]);
+  },[nombre,email,tel,anioInicio,ubicaciones,hTiers,eTiers,R,otrosIng,otrosIngItems,workers,numJ,pagoJ,diasJ,arriendo,agua,luz,mktCM,mktP,costosAdmin,costosAdminD,seguroVeh,otrosF,otrosFD,tipoTr,tipoComb,costoTr,mntV,mantAceite,mantOtros,mantOtrosD,gastoMayorVeh,gastoMayorVehD,insumos,insumosD,baldes,otrosV,otrosVD,tasaC,tipoCompostaje,kgVend,precKg,capTrab,assets,certs,ccerts,intF]);
 
   const enviar=useCallback(async()=>{
     if(!nombre.trim())return;setSending(true);setSendError("");
-    const payload={empresa:nombre.trim(),email:email.trim(),tel:tel.trim(),hogares:R.hog,empresasClientes:R.emp,kgMensuales:R.kgM,ingresoTotal:R.incTotal,costoTotal:R.costoT,utilidadNeta:R.uNeta,roi:R.roi,tipoTransporte:tipoTr,tipoCombustible:tipoComb,galonesMes:R.galMes,tipoCompostaje:tipoCompostaje,co2eAnio:R.co2eAnio,co2TransAnio:R.co2TransAnio,trabajadores:workers.map(w=>({rol:w.rol,salario:w.salario,horas:w.horas,factura:w.factura})),otrosIngresos:otrosIngItems.filter(i=>i.monto>0).map(i=>({desc:i.desc,monto:i.monto})),certificaciones:[...certs.filter(c=>c.on),...ccerts.filter(c=>c.on)].map(c=>c.label),hogarTiers:hTiers.filter(t=>t.cantidad>0),empresaTiers:eTiers.filter(t=>t.cantidad>0)};
-    try{if(GOOGLE_SCRIPT_URL){await fetch(GOOGLE_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)});}setSub(true);}catch(e){setSendError("Error al enviar. Tus resultados están disponibles de todas formas.");setSub(true);}setSending(false);
-  },[nombre,email,tel,R,tipoTr,tipoComb,tipoCompostaje,workers,otrosIngItems,certs,ccerts,hTiers,eTiers]);
+    const payload={
+      empresa:nombre.trim(),email:email.trim(),tel:tel.trim(),
+      anioInicio:anioInicio,ubicaciones:ubicaciones.trim(),
+      hogares:R.hog,empresasClientes:R.emp,kgMensuales:R.kgM,
+      ingresoTotal:R.incTotal,costoTotal:R.costoT,utilidadNeta:R.uNeta,roi:R.roi,
+      tipoTransporte:tipoTr,tipoCombustible:tipoComb,galonesMes:R.galMes,
+      tipoCompostaje:tipoCompostaje,
+      costosAdmin:costosAdmin,costosAdminDetalle:costosAdminD,
+      seguroVeh:seguroVeh,
+      mantAceite:mantAceite,mantOtros:mantOtros,mantOtrosDetalle:mantOtrosD,
+      gastoMayorVeh:gastoMayorVeh,gastoMayorDetalle:gastoMayorVehD,
+      co2eAnio:R.co2eAnio,co2TransAnio:R.co2TransAnio,
+      trabajadores:workers.map(w=>({rol:w.rol,salario:w.salario,horas:w.horas,factura:w.factura})),
+      otrosIngresos:otrosIngItems.filter(i=>i.monto>0).map(i=>({desc:i.desc,monto:i.monto})),
+      certificaciones:[...certs.filter(c=>c.on),...ccerts.filter(c=>c.on)].map(c=>c.label),
+      hogarTiers:hTiers.filter(t=>t.cantidad>0),empresaTiers:eTiers.filter(t=>t.cantidad>0)
+    };
+    try{if(GOOGLE_SCRIPT_URL){await fetch(GOOGLE_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});}setSub(true);}catch(e){setSendError("Error al enviar. Tus resultados están disponibles de todas formas.");setSub(true);}setSending(false);
+  },[nombre,email,tel,anioInicio,ubicaciones,R,tipoTr,tipoComb,tipoCompostaje,costosAdmin,costosAdminD,seguroVeh,mantAceite,mantOtros,mantOtrosD,gastoMayorVeh,gastoMayorVehD,workers,otrosIngItems,certs,ccerts,hTiers,eTiers]);
 
   const addBtn=(color,onClick,label)=><button onClick={onClick} style={{width:"100%",padding:"9px",border:`1.5px dashed ${color}60`,borderRadius:10,background:`${color}08`,color,fontSize:12,fontWeight:600,cursor:"pointer",marginTop:3}}>{label}</button>;
 
@@ -636,6 +675,8 @@ function App(){
     {tab==="costos"&&<>
       <Sec title="Tu emprendimiento" icon="🏷️">
         <Txt label="Nombre de tu iniciativa *" value={nombre} onChange={v=>{setNombre(v);setSub(false);}} placeholder="Ej: CompostaQuito, Tierra Viva..."/>
+        <Inp label="¿Desde qué año operan?" value={anioInicio} onChange={setAnioInicio} unit="" min={2000} max={2026} step={1}/>
+        <Txt label="Ubicación(es) del compostaje" value={ubicaciones} onChange={setUbicaciones} placeholder="Ej: Cumbayá (planta principal), Tumbaco (punto de acopio)" hint="Barrio, sector o dirección donde procesan los residuos" multiline/>
         <Txt label="Email" value={email} onChange={setEmail} placeholder="tu@email.com"/>
         <Txt label="WhatsApp" value={tel} onChange={setTel} placeholder="0999..."/>
       </Sec>
@@ -750,8 +791,11 @@ function App(){
         <Inp label="Luz" value={luz} onChange={setLuz} unit="$/mes"/>
         <Inp label="Marketing / Community Manager" value={mktCM} onChange={setMktCM} unit="$/mes"/>
         <Inp label="Pauta" value={mktP} onChange={setMktP} unit="$/mes"/>
+        <Inp label="Costos administrativos" value={costosAdmin} onChange={setCostosAdmin} unit="$/mes"/>
+        {costosAdmin>0&&<Txt label="Detalle" value={costosAdminD} onChange={setCostosAdminD} placeholder="Ej: contador $50, software $15, papelería..."/>}
+        {tipoTr!=="publico"&&tipoTr!=="bicicargo"&&<Inp label="Seguro vehicular" value={seguroVeh} onChange={setSeguroVeh} unit="$/mes" hint="Prorrateo mensual de la póliza anual"/>}
         <Inp label="Otros fijos" value={otrosF} onChange={setOtrosF} unit="$/mes"/>
-        {otrosF>0&&<Txt label="¿Qué?" value={otrosFD} onChange={setOtrosFD} placeholder="Seguro, contador..."/>}
+        {otrosF>0&&<Txt label="¿Qué?" value={otrosFD} onChange={setOtrosFD} placeholder="Ej: bodega adicional, telefonía..."/>}
       </Sec>
       <Sec title="Variables" icon="⛽" accent={C.barkL}>
         <Sel label="Transporte" value={tipoTr} onChange={setTipoTr} options={TRANS}/>
@@ -761,7 +805,13 @@ function App(){
         </>}
         {tipoTr==="bicicargo"&&<Inp label="Mantenimiento bici" value={comb} onChange={setComb} unit="$/mes"/>}
         {(tipoTr==="publico"||tipoTr==="mixto")&&<Inp label="Pasajes bus/trole" value={trPub} onChange={setTrPub} unit="$/mes"/>}
-        {tipoTr!=="publico"&&<Inp label="Mant. vehículo" value={mantV} onChange={setMantV} unit="$/mes"/>}
+        {tipoTr!=="publico"&&tipoTr!=="bicicargo"&&<>
+          <Inp label="Cambio de aceite y filtros" value={mantAceite} onChange={setMantAceite} unit="$/mes" hint="Prorrateo mensual"/>
+          <Inp label="Otros mantenimientos vehículo" value={mantOtros} onChange={setMantOtros} unit="$/mes"/>
+          {mantOtros>0&&<Txt label="¿Cuáles?" value={mantOtrosD} onChange={setMantOtrosD} placeholder="Ej: llantas, frenos, alineación, lavado..."/>}
+          <Inp label="Gastos mayores del vehículo (anual)" value={gastoMayorVeh} onChange={setGastoMayorVeh} unit="$/año" hint="Averías, reparaciones mayores. Se divide entre 12 meses."/>
+          {gastoMayorVeh>0&&<Txt label="Detalle" value={gastoMayorVehD} onChange={setGastoMayorVehD} placeholder="Ej: reparación motor, transmisión, carrocería..."/>}
+        </>}
         <Inp label="Insumos compostaje" value={insumos} onChange={setInsumos} unit="$/mes"/>
         {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos, cal, melaza..."/>}
         <Inp label="Baldes" value={baldes} onChange={setBaldes} unit="$/mes"/>
@@ -863,6 +913,8 @@ function App(){
           {l:"(-) Arriendo",v:arriendo,c:C.danger},{l:"(-) Agua+Luz",v:servBas,c:C.danger},
           {l:"(-) Depreciación",v:R.depM,c:C.danger},{l:"(-) Amortización",v:R.amortM,c:C.danger},
           {l:"(-) Marketing",v:mkt,c:C.danger},
+          costosAdmin>0?{l:"(-) Administrativos",v:costosAdmin,c:C.danger}:null,
+          seguroVeh>0?{l:"(-) Seguro vehicular",v:seguroVeh,c:C.danger}:null,
           otrosF>0?{l:`(-) ${otrosFD||"Otros"}`,v:otrosF,c:C.danger}:null,
           {l:"(-) Variables",v:R.cv,c:C.danger},{d:true},
           {l:"= Ut. bruta",v:R.uBruta,b:true,c:R.uBruta>=0?C.success:C.danger},
