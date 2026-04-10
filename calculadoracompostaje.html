@@ -23,7 +23,7 @@ const {useState,useMemo,useCallback}=React;
 // ══════════════════════════════════════════
 // CONFIGURACIÓN: Pega aquí tu URL de Google Apps Script
 // ══════════════════════════════════════════
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7qpnr-zN_V4VIg5CY3LZaxzQQAoZm-K7iuU-FlxBoIWF0fR132neAMCMbg1rC7ZwM/exec"; // pega tu URL de Apps Script
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzoszfSEm1YXzg0lklkd5w6mZSXxfVWJtTL2DTojcyYX_p6opuPI1wyaOjpmLi2y3A_/exec"; // pega tu URL de Apps Script
 
 function enviarDatos(datos) {
   fetch(GOOGLE_SCRIPT_URL, {
@@ -829,7 +829,7 @@ function App(){
           {gastoMayorVeh>0&&<Txt label="Detalle" value={gastoMayorVehD} onChange={setGastoMayorVehD} placeholder="Ej: reparación motor, transmisión, carrocería..."/>}
         </>}
         <Inp label="Insumos compostaje" value={insumos} onChange={setInsumos} unit="$/mes"/>
-        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos, cal, melaza..."/>}
+        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos..."/>}
         <Inp label="Baldes" value={baldes} onChange={setBaldes} unit="$/mes"/>
         <Inp label="Otros" value={otrosV} onChange={setOtrosV} unit="$/mes"/>
         {otrosV>0&&<Txt label="¿Qué incluyen?" value={otrosVD} onChange={setOtrosVD} placeholder="Ej: empaques, análisis de laboratorio, fumigación..."/>}
@@ -970,7 +970,7 @@ function App(){
           {l:"(-) Arriendo",v:arriendo,c:C.danger},{l:"(-) Agua+Luz",v:servBas,c:C.danger},
           {l:"(-) Depreciación",v:R.depM,c:C.danger},{l:"(-) Amortización",v:R.amortM,c:C.danger},
           {l:"(-) Marketing",v:mkt,c:C.danger},
-          costosAdmin>0?{l:"(-) Administrativos",v:costosAdmin,c:C.danger}:null,
+          costosAdmin>0?{l:"(-) Administrativos (contabilidad, otros)",v:costosAdmin,c:C.danger}:null,
           seguroVeh>0?{l:"(-) Seguro vehicular",v:seguroVeh,c:C.danger}:null,
           otrosF>0?{l:`(-) ${otrosFD||"Otros"}`,v:otrosF,c:C.danger}:null,
           {l:"(-) Variables",v:R.cv,c:C.danger},{d:true},
