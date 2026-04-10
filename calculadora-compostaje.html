@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculadora Financiera — Compostaje Comunitario Quito</title>
-<meta name="description" content="Herramienta gratuita para calcular costos, punto de equilibrio, rentabilidad y emisiones GEI de emprendimientos de compostaje en Quito.">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -21,18 +20,44 @@ input,select,textarea,button{font-family:inherit}
 <script type="text/babel">
 const {useState,useMemo,useCallback}=React;
 
-
 // ══════════════════════════════════════════
 // CONFIGURACIÓN: Pega aquí tu URL de Google Apps Script
 // ══════════════════════════════════════════
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkMR50rC4-E2BQTvItahNUwkvvcKLWiVsIaGj7yxVrjE6QZ3od0aa6VHwaN3mY4Y1Y/exec"; // ← PEGA TU URL AQUÍ
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7qpnr-zN_V4VIg5CY3LZaxzQQAoZm-K7iuU-FlxBoIWF0fR132neAMCMbg1rC7ZwM/exec"; // pega tu URL de Apps Script
+
+function enviarDatos(datos) {
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(datos)
+  })
+  .then(res => res.text())
+  .then(res => {
+    console.log("Respuesta:", res);
+    alert("Datos enviados correctamente");
+  })
+  .catch(err => {
+    console.error("Error:", err);
+    alert("Error al enviar datos");
+  });
+}
 // ══════════════════════════════════════════
+
 
 const C={earth:"#2D5016",earthL:"#3A6B1E",leaf:"#5B8C2A",lime:"#A4D65E",cream:"#FFF8E7",warm:"#F5E6C8",bark:"#5C3D2E",barkL:"#7A5642",soil:"#3E2723",amber:"#E8A317",danger:"#C0392B",success:"#27AE60",white:"#FFFFFF",ghost:"rgba(45,80,22,0.06)"};
 const f$=v=>`$${Number(v).toFixed(2)}`;
 const fN=v=>Number(v).toLocaleString("es-EC",{maximumFractionDigits:1});
 const FREQ=[{value:4,label:"1 vez por semana"},{value:2,label:"Cada 2 semanas"},{value:1,label:"1 vez al mes"}];
 const TRANS=[{value:"vehiculo",label:"Vehículo propio"},{value:"moto",label:"Moto"},{value:"bicicargo",label:"Bici-cargo"},{value:"publico",label:"Transporte público"},{value:"mixto",label:"Mixto (vehículo + bus)"}];
+const COMBUSTIBLES=[
+  {value:"gasolina_extra",label:"Gasolina Extra",kgCO2porGal:8.74,precioGal:2.722},   // 2.31 kg/L × 3.785 L/gal
+  {value:"gasolina_super",label:"Gasolina Súper",kgCO2porGal:8.74,precioGal:3.927},
+  {value:"diesel",label:"Diésel",kgCO2porGal:10.11,precioGal:1.093},                  // 2.67 kg/L × 3.785 L/gal (subsidiado)
+  {value:"glp",label:"GLP (gas)",kgCO2porGal:6.17,precioGal:0.90},                    // 1.63 kg/L × 3.785 L/gal
+  {value:"ninguno",label:"Sin combustible (bici/eléctrico)",kgCO2porGal:0,precioGal:0},
+];
 const CERTS_DEF=[
   {id:"gad",label:"Registro gestor de residuos (GAD Quito, gratuito)",on:false,valor:0,anios:3},
   {id:"luae",label:"LUAE + Patente municipal",on:true,valor:30,anios:1},
@@ -157,7 +182,7 @@ function TierCard({t,onChange,onRemove,nLabel,nField,cLabel}){
         <input type="text" value={t[nField]} placeholder="Nombre..." onChange={e=>onChange({...t,[nField]:e.target.value})}
           style={{width:"100%",padding:"7px 9px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:12,color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
       </div>
-      {[{l:cLabel,k:"cantidad",s:1},{l:"Kg/recol.",k:"kgPorRecol",s:0.5}].map(f=><div key={f.k} style={{marginBottom:8}}>
+      {[{l:cLabel,k:"cantidad",s:1},{l:"kg/recol.",k:"kgPorRecol",s:0.5}].map(f=><div key={f.k} style={{marginBottom:8}}>
         <label style={{fontSize:10,fontWeight:600,color:C.barkL}}>{f.l}</label>
         <input type="number" value={t[f.k]} min={0} step={f.s} onChange={e=>onChange({...t,[f.k]:Number(e.target.value)})}
           style={{width:"100%",padding:"7px 9px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:12,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
@@ -182,15 +207,27 @@ function TierCard({t,onChange,onRemove,nLabel,nField,cLabel}){
   </div>;
 }
 
-const TABS=[{id:"costos",label:"Costos"},{id:"ingresos",label:"Ingresos"},{id:"resultados",label:"Resultados"}];
+const TABS=[{id:"costos",label:"Costos"},{id:"ingresos",label:"Ingresos"},{id:"cobertura",label:"Cobertura"},{id:"resultados",label:"Resultados"}];
+
+const PARR_URBANAS=["Carcelén","El Condado","Ponceano","Cotocollao","Comité del Pueblo","La Concepción","Kennedy","El Inca","Jipijapa","Iñaquito","Rumipamba","Cochapamba","Belisario Quevedo","Mariscal Sucre (La Floresta)","Itchimbía","Centro Histórico","San Juan","La Libertad","Chimbacalle","La Ferroviaria","Puengasí","La Magdalena","Chilibulo","San Bartolo","La Mena","Solanda","La Argelia","Chillogallo","Quitumbe","La Ecuatoriana","Guamaní","Turubamba"];
+const PARR_RURALES=["Alangasí","Amaguaña","Atahualpa","Calacalí","Calderón","Chávezpamba","Checa","Conocoto","Cumbayá","El Quinche","Gualea","Guangopolo","Guayllabamba","La Merced","Llano Chico","Lloa","Mindo","Nanegal","Nanegalito","Nayón","Nono","Pacto","Perucho","Pifo","Píntag","Puembo","San Antonio de Pichincha","San José de Minas","Tababela","Tumbaco","Yaruquí","Zámbiza"];
 
 function App(){
   const [nombre,setNombre]=useState("");
+  const [nombrePersona,setNombrePersona]=useState("");
+  const [edad,setEdad]=useState("");
+  const [genero,setGenero]=useState("");
   const [email,setEmail]=useState("");
   const [tel,setTel]=useState("");
   const [submitted,setSub]=useState(false);
   const [sending,setSending]=useState(false);
   const [sendError,setSendError]=useState("");
+  const [anioInicio,setAnioInicio]=useState(2024);
+  const [ubicaciones,setUbicaciones]=useState("");
+  const [parrUrb,setParrUrb]=useState({});
+  const [parrRur,setParrRur]=useState({});
+  const [otraParrUrb,setOtraParrUrb]=useState("");
+  const [otraParrRur,setOtraParrRur]=useState("");
 
   const [hTiers,setHT]=useState([
     {id:1,plan:"Semanal",cantidad:50,kgPorRecol:4,frecuencia:4,tarifa:10},
@@ -203,15 +240,14 @@ function App(){
     {id:2,tipo:"Oficinas",cantidad:2,kgPorRecol:8,frecuencia:2,tarifa:20},
   ]);
   const [nxE,sNxE]=useState(3);
-  const [numTC,setNumTC]=useState(1);
-  const [salTC,setSalTC]=useState(482);
+  // Workers: each has role, salary, hours/day (8=full time), factura (boolean)
+  const [workers,setWorkers]=useState([
+    {id:1,rol:"Operador/recolector",salario:482,horas:8,factura:false},
+  ]);
+  const [nxW,sNxW]=useState(2);
   const [numJ,setNumJ]=useState(2);
   const [pagoJ,setPagoJ]=useState(20);
   const [diasJ,setDiasJ]=useState(8);
-  // Tiempo parcial (medio tiempo = 4h/día, con IESS proporcional)
-  const [numTP,setNumTP]=useState(0);
-  const [salTP,setSalTP]=useState(241); // SBU/2 para medio tiempo
-  const [horasTP,setHorasTP]=useState(4); // horas diarias
   const [arriendo,setArr]=useState(250);
   const [agua,setAgua]=useState(15);
   const [luz,setLuz]=useState(25);
@@ -219,6 +255,14 @@ function App(){
   const [mktP,setMktP]=useState(20);
   const [otrosF,setOtrosF]=useState(0);
   const [otrosFD,setOtrosFD]=useState("");
+  const [costosAdmin,setCostosAdmin]=useState(0);
+  const [costosAdminD,setCostosAdminD]=useState("");
+  const [seguroVeh,setSeguroVeh]=useState(0);
+  const [mantAceite,setMantAceite]=useState(20);
+  const [mantOtros,setMantOtros]=useState(20);
+  const [mantOtrosD,setMantOtrosD]=useState("");
+  const [gastoMayorVeh,setGastoMayorVeh]=useState(0);
+  const [gastoMayorVehD,setGastoMayorVehD]=useState("");
   const [assets,setAssets]=useState([
     {id:1,nombre:"Vehículo (camioneta/furgón)",valor:8000,vidaAnios:5,residual:2000},
     {id:2,nombre:"Compostera",valor:800,vidaAnios:5,residual:0},
@@ -234,21 +278,27 @@ function App(){
   const [capTrab,setCapTrab]=useState(1500);
   const [tipoTr,setTipoTr]=useState("vehiculo");
   const [comb,setComb]=useState(80);
+  const [tipoComb,setTipoComb]=useState("gasolina_extra");
   const [trPub,setTrPub]=useState(0);
   const [mantV,setMantV]=useState(40);
   const [insumos,setInsumos]=useState(35);
+  const [insumosD,setInsumosD]=useState("");
   const [baldes,setBaldes]=useState(20);
   const [otrosV,setOtrosV]=useState(0);
   const [otrosVD,setOtrosVD]=useState("");
   const [kgVend,setKgVend]=useState(200); // kg de compost vendidos por mes
   const [precKg,setPrecKg]=useState(0.40);
   const [tasaC,setTasaC]=useState(30);
-  const [otrosIng,setOtrosIng]=useState(0);
+  const [tipoCompostaje,setTipoCompostaje]=useState("");
+  const [otrosIngItems,setOtrosIngItems]=useState([]);
+  const [nxOI,sNxOI]=useState(1);
+  const otrosIng=otrosIngItems.reduce((s,i)=>s+i.monto,0);
   const [tab,setTab]=useState("costos");
 
   const servBas=agua+luz;const mkt=mktCM+mktP;
   const costoTr=tipoTr==="publico"?trPub:(comb+(tipoTr==="mixto"?trPub:0));
-  const mntV=tipoTr==="publico"?0:mantV;
+  const mntV=tipoTr==="publico"?0:(mantAceite+mantOtros);
+  const gastoMayorMes=gastoMayorVeh/12; // amortizado a 12 meses
 
   const R=useMemo(()=>{
     const hog=hTiers.reduce((s,t)=>s+t.cantidad,0);
@@ -265,18 +315,27 @@ function App(){
     const invAct=assets.reduce((s,a)=>s+a.valor,0);
     const invInt=certAct.reduce((s,c)=>s+c.valor,0)+intF.filter(i=>i.on).reduce((s,i)=>s+i.valor,0);
     const invT=invAct+invInt+capTrab;
-    const iess=salTC*numTC*0.1115;const totSal=salTC*numTC+iess;
-    const d13=(salTC*numTC)/12;const d14=(482/12)*numTC;const fRes=(salTC*numTC)/12;const vac=(salTC*numTC)/24;
-    const ben=d13+d14+fRes+vac;const costoTC=totSal+ben;
-    // Tiempo parcial: IESS proporcional, beneficios proporcionales
-    const iessTP=salTP*numTP*0.1115;const totSalTP=salTP*numTP+iessTP;
-    const d13tp=(salTP*numTP)/12;const d14tp=(482*(horasTP/8)/12)*numTP;
-    const fResTP=(salTP*numTP)/12;const vacTP=(salTP*numTP)/24;
-    const benTP=d13tp+d14tp+fResTP+vacTP;const costoTPtotal=totSalTP+benTP;
+    // Mano de obra: workers con IESS + beneficios (o factura)
+    const SBU=482;
+    const workersCalc=workers.map(w=>{
+      if(w.factura){
+        // Factura: solo el monto, sin IESS ni beneficios
+        return {rol:w.rol,salario:w.salario,costoTotal:w.salario,tipo:"factura"};
+      }
+      const prop=w.horas/8; // proporción de jornada
+      const iessW=w.salario*0.1115;
+      const d13=w.salario/12;
+      const d14=(SBU*prop)/12;
+      const fRes=w.salario/12;
+      const vac=w.salario/24;
+      const benW=d13+d14+fRes+vac;
+      return {rol:w.rol,salario:w.salario,iess:iessW,ben:benW,costoTotal:w.salario+iessW+benW,tipo:w.horas>=8?"TC":"TP"};
+    });
+    const costoWorkers=workersCalc.reduce((s,w)=>s+w.costoTotal,0);
     const costoJ=numJ*pagoJ*diasJ;
-    const mobra=costoTC+costoTPtotal+costoJ;
-    const cf=arriendo+mobra+servBas+desgM+mkt+otrosF;
-    const cv=costoTr+mntV+insumos+baldes+otrosV;
+    const mobra=costoWorkers+costoJ;
+    const cf=arriendo+mobra+servBas+desgM+mkt+costosAdmin+seguroVeh+otrosF;
+    const cv=costoTr+mntV+gastoMayorMes+insumos+baldes+otrosV;
     const costoT=cf+cv;
     const incSusc=incH+incE;const incComp=Math.min(kgVend,kgComp)*precKg;const incTotal=incSusc+incComp+otrosIng;
     const uBruta=incTotal-costoT;const mBruto=incTotal>0?(uBruta/incTotal)*100:0;
@@ -356,18 +415,25 @@ function App(){
     // CO2 biogénico del compostaje (no se contabiliza en inventarios GEI según IPCC):
     const co2BiogenicoAnio = tonResiduosAnio * 0.19;                 // t CO₂/año (aprox, aeróbico)
 
+    // Emisiones del transporte (estimadas desde gasto en combustible):
+    const combInfo = COMBUSTIBLES.find(c=>c.value===tipoComb) || COMBUSTIBLES[0];
+    const galMes = combInfo.precioGal > 0 ? comb / combInfo.precioGal : 0; // galones/mes estimados
+    const co2TransMes = (galMes * combInfo.kgCO2porGal) / 1000; // tCO₂/mes
+    const co2TransAnio = co2TransMes * 12; // tCO₂/año
+
     // Conversión a tCO₂eq:
     const ch4NetoCo2eq = ch4NetoAnio * GWP_CH4;                     // tCO₂eq/año
     const n2oCo2eq = n2oCompostajeAnio * 265;                       // tCO₂eq/año (resta, es emisión)
-    const co2eAnio = ch4NetoCo2eq - n2oCo2eq;                       // tCO₂eq netas evitadas/año
+    const co2eCompostajeEvitado = ch4NetoCo2eq - n2oCo2eq;          // tCO₂eq evitadas por compostaje/año
+    const co2eAnio = co2eCompostajeEvitado - co2TransAnio;          // tCO₂eq netas (descontando transporte)
     const co2eMes = co2eAnio / 12;
 
     // Equivalencias para comunicación:
     const arboles = co2eAnio / 0.022;     // 1 árbol maduro absorbe ~22 kg CO2/año
     const kmAuto = co2eAnio / 0.00021;    // auto promedio emite ~210 g CO2/km
 
-    return {hog,emp,kgH,kgE,kgM,kgComp,depM,amortM,desgM,invAct,invInt,invT,iess,totSal,d13,d14,fRes,vac,ben,costoTC,costoTPtotal,costoJ,mobra,cf,cv,costoT,incH,incE,incSusc,incComp,incTotal,uBruta,mBruto,partT,impR,uNeta,mNeto,totalCli,costoCli,tarProm,tarEq,cliEq,costoKg,mesRec,roi,proy,co2eMes,co2eAnio,arboles,kmAuto,tonResiduosAnio,ch4EvitadoAnio,ch4CompostajeAnio,ch4NetoAnio,n2oCompostajeAnio,co2BiogenicoAnio,ch4NetoCo2eq,n2oCo2eq};
-  },[hTiers,eTiers,numTC,salTC,numTP,salTP,horasTP,numJ,pagoJ,diasJ,arriendo,servBas,mkt,otrosF,assets,certs,ccerts,intF,costoTr,mntV,insumos,baldes,otrosV,kgVend,precKg,tasaC,otrosIng,capTrab]);
+    return {hog,emp,kgH,kgE,kgM,kgComp,depM,amortM,desgM,invAct,invInt,invT,workersCalc,costoWorkers,costoJ,mobra,cf,cv,costoT,incH,incE,incSusc,incComp,incTotal,uBruta,mBruto,partT,impR,uNeta,mNeto,totalCli,costoCli,tarProm,tarEq,cliEq,costoKg,mesRec,roi,proy,co2eMes,co2eAnio,co2eCompostajeEvitado,co2TransAnio,co2TransMes,galMes,arboles,kmAuto,tonResiduosAnio,ch4EvitadoAnio,ch4CompostajeAnio,ch4NetoAnio,n2oCompostajeAnio,co2BiogenicoAnio,ch4NetoCo2eq,n2oCo2eq};
+  },[hTiers,eTiers,workers,numJ,pagoJ,diasJ,arriendo,servBas,mkt,costosAdmin,seguroVeh,otrosF,assets,certs,ccerts,intF,costoTr,mntV,gastoMayorMes,insumos,baldes,otrosV,kgVend,precKg,tasaC,otrosIng,capTrab,tipoComb,comb]);
 
   const ok=R.uNeta>0;const canView=submitted&&nombre.trim().length>0;
 
@@ -380,6 +446,8 @@ function App(){
     const res=[
       ["REPORTE FINANCIERO",nombre.toUpperCase()],
       ["Fecha",new Date().toLocaleDateString("es-EC")],
+      ["Año de inicio",anioInicio],
+      ["Ubicación(es)",ubicaciones],
       ["Email",email],["Teléfono",tel],
       [],
       ["RESUMEN EJECUTIVO","","Valor","Unidad"],
@@ -397,16 +465,17 @@ function App(){
       ["  Otros ingresos",null,otrosIng,R.incTotal>0?otrosIng/R.incTotal:0],
       [],
       ["(-) Costos fijos",null,R.cf,R.incTotal>0?R.cf/R.incTotal:0],
-      ["  Mano obra tiempo completo",null,R.costoTC,""],
-      ["  Mano obra tiempo parcial",null,R.costoTPtotal,""],
+      ["  Salarios y mano de obra",null,R.costoWorkers,""],
       ["  Jornaleros",null,R.costoJ,""],
       ["  Arriendo",null,arriendo,""],
       ["  Agua",null,agua,""],
       ["  Luz",null,luz,""],
       ["  Depreciación equipos",null,R.depM,""],
       ["  Amortización intangibles",null,R.amortM,""],
-      ["  Marketing / CM",null,mktCM,""],
+      ["  Marketing / Community Manager",null,mktCM,""],
       ["  Pauta publicitaria",null,mktP,""],
+      costosAdmin>0?["  Costos administrativos",null,costosAdmin,costosAdminD]:null,
+      seguroVeh>0?["  Seguro vehicular",null,seguroVeh,""]:null,
       otrosF>0?["  "+otrosFD||"Otros fijos",null,otrosF,""]:null,
       [],
       ["(-) Costos variables",null,R.cv,R.incTotal>0?R.cv/R.incTotal:0],
@@ -442,21 +511,22 @@ function App(){
     const sup=[
       ["SUPUESTOS — MODIFICA ESTOS VALORES","","Valor actual","Notas"],
       [],
+      ["DATOS GENERALES"],
+      ["Año de inicio",null,anioInicio,""],
+      ["Ubicación(es)",null,ubicaciones,""],
+      [],
       ["HOGARES POR PLAN"],
-      ["Plan","Cantidad","Kg/recol.","Frecuencia/mes","Tarifa $/mes"],
+      ["Plan","Cantidad","kg/recol.","Frecuencia/mes","Tarifa $/mes"],
       ...hTiers.map(t=>[t.plan,t.cantidad,t.kgPorRecol,t.frecuencia,t.tarifa]),
       [],
       ["EMPRESAS POR TIPO"],
-      ["Tipo","Cantidad","Kg/recol.","Frecuencia/mes","Tarifa $/mes"],
+      ["Tipo","Cantidad","kg/recol.","Frecuencia/mes","Tarifa $/mes"],
       ...eTiers.map(t=>[t.tipo,t.cantidad,t.kgPorRecol,t.frecuencia,t.tarifa]),
       [],
       ["MANO DE OBRA"],
-      ["Trabajadores tiempo completo",null,numTC,"SBU 2026: $482"],
-      ["Salario mensual c/u",null,salTC,"No puede ser menor al SBU"],
-      ["Trabajadores tiempo parcial",null,numTP,"Con IESS proporcional"],
-      ["Salario parcial c/u",null,salTP,"Proporcional a horas"],
-      ["Horas diarias (parcial)",null,horasTP,"Máx 7h"],
-      ["Jornaleros",null,numJ,"Sin contrato fijo"],
+      ["Rol","Salario $/mes","Horas/día","Factura","Costo real $/mes"],
+      ...workers.map((w,i)=>[w.rol,w.salario,w.horas,w.factura?"Sí":"No",R.workersCalc?.[i]?.costoTotal||w.salario]),
+      ["Jornaleros",null,numJ,""],
       ["Pago por día jornalero",null,pagoJ,"$15-25 en Quito"],
       ["Días/mes por jornalero",null,diasJ,""],
       [],
@@ -464,23 +534,32 @@ function App(){
       ["Arriendo",null,arriendo,"Valles: $150-400"],
       ["Agua",null,agua,""],
       ["Luz",null,luz,""],
-      ["Marketing / CM",null,mktCM,""],
+      ["Marketing / Community Manager",null,mktCM,""],
       ["Pauta publicitaria",null,mktP,""],
+      ["Costos administrativos",null,costosAdmin,costosAdminD],
+      ["Seguro vehicular",null,seguroVeh,"Mensual"],
       ["Otros fijos",null,otrosF,otrosFD],
       [],
       ["COSTOS VARIABLES"],
       ["Tipo transporte",null,tipoTr,""],
-      ["Combustible/transporte",null,costoTr,""],
-      ["Mantenimiento vehículo",null,mntV,""],
-      ["Insumos compostaje",null,insumos,""],
+      ["Tipo combustible",null,tipoComb,""],
+      ["Gasto combustible $/mes",null,comb,""],
+      ["Galones estimados/mes",null,Math.round(R.galMes*10)/10,"Calculado: gasto ÷ precio/galón"],
+      ["Emisiones transporte tCO₂/año",null,Math.round(R.co2TransAnio*1000)/1000,""],
+      ["Cambio de aceite y filtros",null,mantAceite,"$/mes"],
+      ["Otros mantenimientos vehículo",null,mantOtros,mantOtrosD],
+      ["Gastos mayores vehículo (anual)",null,gastoMayorVeh,gastoMayorVehD],
+      ["Insumos compostaje",null,insumos,insumosD],
       ["Baldes/contenedores",null,baldes,""],
       ["Otros variables",null,otrosV,otrosVD],
       [],
       ["INGRESOS ADICIONALES"],
       ["Tasa conversión compost (%)",null,tasaC,"25-35%"],
+      ["Tipo de compostaje",null,tipoCompostaje,""],
       ["Kg compost vendidos/mes",null,kgVend,"No puede superar producción"],
       ["Precio compost $/kg",null,precKg,"$0.25-0.80"],
-      ["Otros ingresos",null,otrosIng,"Talleres, bonos"],
+      ["Otros ingresos",null,otrosIng,""],
+      ...otrosIngItems.filter(i=>i.monto>0).map(i=>["  "+i.desc,null,i.monto,""]),
       [],
       ["INVERSIÓN"],
       ["Capital de trabajo",null,capTrab,"Primeros meses"],
@@ -528,7 +607,10 @@ function App(){
       ["CH₄ emitido (compostaje)",R.ch4CompostajeAnio,"t CH₄",R.ch4CompostajeAnio*28],
       ["N₂O emitido (compostaje)",R.n2oCompostajeAnio,"t N₂O",R.n2oCo2eq],
       ["CO₂ biogénico (no contabilizado)",R.co2BiogenicoAnio,"t CO₂","ciclo corto"],
+      ["CO₂ transporte (combustible)",R.co2TransAnio,"t CO₂",R.co2TransAnio],
       [],
+      ["Emisiones evitadas por compostaje",R.co2eCompostajeEvitado,"tCO₂eq/año",""],
+      ["(-) Emisiones por transporte",R.co2TransAnio,"tCO₂eq/año",""],
       ["NETO EVITADO",R.co2eAnio,"tCO₂eq/año",""],
       ["Equivalente mensual",R.co2eMes,"tCO₂eq/mes",""],
       ["Equivalente en árboles",Math.round(R.arboles),"árboles/año",""],
@@ -545,34 +627,32 @@ function App(){
     a.href=url;a.download=`Reporte_${nombre.replace(/\s+/g,"_")}_${new Date().toISOString().slice(0,10)}.xlsx`;
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  },[nombre,email,tel,hTiers,eTiers,R,otrosIng,numTC,salTC,numTP,salTP,horasTP,numJ,pagoJ,diasJ,arriendo,agua,luz,mktCM,mktP,otrosF,otrosFD,tipoTr,costoTr,mntV,insumos,baldes,otrosV,tasaC,kgVend,precKg,capTrab,assets,certs,ccerts,intF]);
+  },[nombre,email,tel,anioInicio,ubicaciones,hTiers,eTiers,R,otrosIng,otrosIngItems,workers,numJ,pagoJ,diasJ,arriendo,agua,luz,mktCM,mktP,costosAdmin,costosAdminD,seguroVeh,otrosF,otrosFD,tipoTr,tipoComb,costoTr,mntV,mantAceite,mantOtros,mantOtrosD,gastoMayorVeh,gastoMayorVehD,insumos,insumosD,baldes,otrosV,otrosVD,tasaC,tipoCompostaje,kgVend,precKg,capTrab,assets,certs,ccerts,intF]);
 
   const enviar=useCallback(async()=>{
     if(!nombre.trim())return;setSending(true);setSendError("");
     const payload={
-      empresa:nombre.trim(),email:email.trim(),tel:tel.trim(),
-      hogares:R.hog,empresasClientes:R.emp,kgMensuales:R.kgM,kgCompost:R.kgComp,
-      ingresoHogares:R.incH,ingresoEmpresas:R.incE,ingresoCompost:R.incComp,otrosIngresos:otrosIng,ingresoTotal:R.incTotal,
-      costosFijos:R.cf,costosVariables:R.cv,costoTotal:R.costoT,
-      utilidadBruta:R.uBruta,utilidadNeta:R.uNeta,margenNeto:R.mNeto,
-      clientesEquilibrio:Math.ceil(Math.max(R.cliEq,0)),tarifaEquilibrio:R.tarEq,roi:R.roi,
-      inversionTotal:R.invT,mesesRecuperacion:R.mesRec===Infinity?"N/A":Math.round(R.mesRec*10)/10,
-      tipoTransporte:tipoTr,
+      empresa:nombre.trim(),nombrePersona:nombrePersona.trim(),edad:edad,genero:genero,email:email.trim(),tel:tel.trim(),
+      anioInicio:anioInicio,ubicaciones:ubicaciones.trim(),
+      parroquiasUrbanas:Object.fromEntries(Object.entries(parrUrb).filter(([k,v])=>v>0)),
+      parroquiasRurales:Object.fromEntries(Object.entries(parrRur).filter(([k,v])=>v>0)),
+      otraParroquiaUrbana:otraParrUrb,otraParroquiaRural:otraParrRur,
+      hogares:R.hog,empresasClientes:R.emp,kgMensuales:R.kgM,
+      ingresoTotal:R.incTotal,costoTotal:R.costoT,utilidadNeta:R.uNeta,roi:R.roi,
+      tipoTransporte:tipoTr,tipoCombustible:tipoComb,galonesMes:R.galMes,
+      tipoCompostaje:tipoCompostaje,
+      costosAdmin:costosAdmin,costosAdminDetalle:costosAdminD,
+      seguroVeh:seguroVeh,
+      mantAceite:mantAceite,mantOtros:mantOtros,mantOtrosDetalle:mantOtrosD,
+      gastoMayorVeh:gastoMayorVeh,gastoMayorDetalle:gastoMayorVehD,
+      co2eAnio:R.co2eAnio,co2TransAnio:R.co2TransAnio,
+      trabajadores:workers.map(w=>({rol:w.rol,salario:w.salario,horas:w.horas,factura:w.factura})),
+      otrosIngresos:otrosIngItems.filter(i=>i.monto>0).map(i=>({desc:i.desc,monto:i.monto})),
       certificaciones:[...certs.filter(c=>c.on),...ccerts.filter(c=>c.on)].map(c=>c.label),
-      hogarTiers:hTiers.filter(t=>t.cantidad>0),empresaTiers:eTiers.filter(t=>t.cantidad>0),
-      co2eAnio:R.co2eAnio,
+      hogarTiers:hTiers.filter(t=>t.cantidad>0),empresaTiers:eTiers.filter(t=>t.cantidad>0)
     };
-    try{
-      if(GOOGLE_SCRIPT_URL){
-        await fetch(GOOGLE_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)});
-      }
-      setSub(true);
-    }catch(e){
-      setSendError("Error al enviar. Tus resultados están disponibles de todas formas.");
-      setSub(true);
-    }
-    setSending(false);
-  },[nombre,email,tel,R,tipoTr,certs,ccerts,hTiers,eTiers,otrosIng]);
+    try{if(GOOGLE_SCRIPT_URL){await fetch(GOOGLE_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});}setSub(true);}catch(e){setSendError("Error al enviar. Tus resultados están disponibles de todas formas.");setSub(true);}setSending(false);
+  },[nombre,genero,email,tel,anioInicio,ubicaciones,parrUrb,parrRur,otraParrUrb,otraParrRur,R,tipoTr,tipoComb,tipoCompostaje,costosAdmin,costosAdminD,seguroVeh,mantAceite,mantOtros,mantOtrosD,gastoMayorVeh,gastoMayorVehD,workers,otrosIngItems,certs,ccerts,hTiers,eTiers]);
 
   const addBtn=(color,onClick,label)=><button onClick={onClick} style={{width:"100%",padding:"9px",border:`1.5px dashed ${color}60`,borderRadius:10,background:`${color}08`,color,fontSize:12,fontWeight:600,cursor:"pointer",marginTop:3}}>{label}</button>;
 
@@ -588,7 +668,7 @@ function App(){
         </div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0,marginLeft:16,gap:3}}>
           <span style={{fontSize:9,color:"rgba(255,255,255,0.55)",letterSpacing:0.5,textTransform:"uppercase"}}>Financiado por</span>
-          <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCABfAHEDASIAAhEBAxEB/8QAHAAAAwEBAQEBAQAAAAAAAAAAAAgJBwYFAQIK/8QAUxAAAQIFAQMFCgsNCgcAAAAAAQIDAAQFBhEHCBIhCRMxOEYUIlFhdIGxtBUYR3FzdJGSlcQkM0JSVVeCk9LTFhcjMjU3VmKFlKGl0f/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwBMoIIIAggjTbF0F1Vve2JW5bZtlM9SporDL5qEs1vFCyhXercChhSSOI7IDMobHZN2ZZS66TLX1qE06aS/39OpYUUGaR2OukcQg/0UjBV05xjeXS1rVmZ7VGl2TUUFiZfrTVLmUhQPNrU8GljIyDg54jhwik+0PdS9NNCK3WKGluVmJOVbk6clCRhlS1JaQUjo7wK3gP1YD5VL50V0nWmhPVa27bdbSAZKTZAcQOzeQ0kqGenKhxj8OSOi2uFGmA23btzoSMOOs7ompfPQd4YdbP0Z8cTz080v1F1VXU6ja1KXWnJZ1JnnnZ5pte+5vEEl1YKicKOePjj+inqvrQTVuSfn2F0utU5Tbr8siYQ4l5heCW1FCikpUnhjPDgeBAgGEl9i1Q1VW29XVqsZKA+lwKHdizn/AIc8MAjpLmMYxgZ6GBLeiuiFKl2nE25ayVJ/BlYBmnwOlWeLrnv8Y76eq8nK22/X1KKpNmTVOEjpLYRv5+iJYzKb91t1JqE5KSkxW69Pb8yWEOAc20k8Ep3iAEJBAA8EBRKl3jotq7v0VipW1czi0n+RzTKS6oAcSlDqQrh4UjhCtbWuzVL2VTn74sJDyqE2oGfpylFapIE4DiFHipvJAIOSnpyRndwq8bF1A0vnqVPXFSZ23pp9xTtPe55IWVtFJKklCiQUlaOPDpikWitwI1R0IotWrjTcz7L05ctUUFICXVJKmXuA6AopUceOAlXBHpXVS1UO6KtRFqK1U+delSo9pbWU5/8AEebAEEEEAQQQQBFLNh3qz218JOetOxNOKWbDvVntr4Sc9adgEwtzrjSPy+T6/Df7exI2dqhx6ahK/aQoFudcaR+XyfX4b/b36u0/5QlfrwGecmj+Q73+Myf1XYx/bz6xlT+Iyn2QjYOTR/Id7/GZP6rsY/t59Yyp/EZT7IQDtV4n2tE+rJz9xzhz/wBEYTLk++sAnyRM+lEOZXurPP8AyNc9SMJnyffWAT5ImfSiA0blNPc++cv4WNd2GSTs1W9k9D05j/uXIyLlNPc++cv4WNd2GerVb3w856y5AIBrB+du8fL096wuOVjqtYPzt3j5envWFxysAQQQQBBBBAEUs2HerPbXwk5607E04pFsHz7E3s40iXZUFLkpybYeAPQovKcx+y4k+eATq3OuNI/L5Pr8N/t79Xaf8oSv14T6/nVac7WVRqlSlHXG6TdnspzKcBbjPdAfRjPDJQU/TGj7Ru01b2qGmMzaVOtqqSEw7MsvB591tSAEKyRgHMB2/Jo/kO9/jMn9V2Mf28+sZU/iMp9kI3Xk3qNMyunVyVt1tSGZ+poZZJH4wab4keLLhHvgxgG3HPsTu0hX0sKChKsyrCyDw3gwgkebex74gHjr3Vnn/ka56kYTPk++sAnyRM+lEd3Udre2JrSiZs1Np1hMw7QlUwPl5vcCywWt7Gc4zxjhOT76wCfJEz6UQGjcpp7n3zl/Cxruwz1are+HnPWXIyLlNPc++cv4WOc2fNqG3dNNKqZZ9Qtmqz0xJuPrU+w62EK5x1SxgE54BWIDANYPzt3j5envWFxysexe9Xar96VyusNLZaqVRmJtDayCpCXHFLAOO0ZjoLK0k1HvSi+zVr2pO1Sn86prn2lICd9OMjioHhkQHDwRqfteNaf7v6n+21/rggHJ9qNox/ZlW/eS4PajaMf2ZVv3kuO92jZubkNC7ynZGaflZlmlOraeZcKFoUB0pUOIPvRM374d/wD6cXN+9n/9UA0u1Hs9aa6f6NVS6Lckag1UpZ6XQ2p2dU4kBbqUq70+ImM52LdaJPTa55q3rlfLNuVlaSp8/iycwOAcP6ihhKj2YSegGMVq14XbV5FcjVrprlQlFkFTEzPuutqIORlKlEHB4x4cBTTXbQazNZmJWtd3KptXSyBL1WTCXUvNHikLTkBxPHIIIPHpxwjH7c2H5RqqIduC/nZqQSrKmZOnhlxweDfUtQT+yYWnTnWTUrT5gStr3VNyskDnuN0JfYGenCHAQnPhTgx21T2sNap2UMu3X5KSKhguS9OaC/pUDjzQDn6kXvYmz/pfLyksxLSyZZgs0ekNL/CTC/Tu7xytw+E9KiAZmXJWahcNwVCvVV4vz1QmXJmYc/rLWoqOB2DJ4Dsj7cVcrNx1Z2rV6qTlTn3v5yYmnlOLPgGT2DsHQI86AIYbk++sAnyRM+lELzHSadXxcun1xfdBak+mRqPMqY51TCHRuKxkbqwR2DsgGo5TT3PvnL+FhM47bVLVW+dTfY77s6uio+xvO9y7sq0zuc5ub/8ANpGc82npz0RxMARRLk++r+nyvM+hETtiiXJ99X9PleZ9CIBhoIIIDw7+tqTvGzKta1QffYlanLKlnXGCA4lKukpyCM++IXn2k2nf6UXV/mS/+1G06/1Wo0PRa7avSZx2Tn5SmOuy77RwptYHAg+GJ1ff51i/vDrv+cP/AJAavtQ7ONpaVaat3PRK1W52aXUGpUtzi2ijdWlZJ71AOe9HbHU7M+zhpxqDozRrruBNXNRnFzAd7nmwhHePrQnA3TjgkQst4aoag3hSRSbnuyp1WRDqXgxMObyQsAgK6OkAn6YfzYd6s9tfCTnrTsBOS6JNmnXLVKfL73Mys48y3vHJ3UrIGT4cCGS2PNC7G1Tser1i6RUzMylS7ma7lmQ2nc5pCuI3Txyowu19/wDPFe8pTH2qodnk3fzV3H5bP2DUAomvNr0uy9Xritei897H0+ZDTHPL317u4lXE4GeJMONW9jrTibtp5NCmatJ1V1lPMPzM3zjTajjKigJBVgZ4ZGfCIVTa16xl5/Hk/ZIii2p1wP2ppBcFxyhAmqdR3n5ckZHOho7mfFvYgMwtbZa0Qosq1SqrT112pqRlbs5UXG3VnHEpbaWkAeYkeExlO07sr0O3rQnrz06M0w3Tmy/O0t50up5kcVLaWrvgUjJIUTkA4IIwVGmqnUZqrLq0zPzL1Qcd55c0t1RdU5nO+VZzvZ45ipmmFRfvTZ+ok9V190TFUt9KJta+POrU1uLUffOT54CVbLTjzyGWW1uOuKCUIQMqUTwAAHSYdjQzY+oyaLLVjVFyZmZ99AX7ES7xabYB47ri098pfhCSAOIyrpjFthy2JW5NoGmuTrSXWaPLO1PcUMgrRupbP+FbiVDxpEMft66oVqyrQpVs25OuyM9XlOmYmmVFLjcu3ugpSocUlZWBkccJUO2A924dlvQ6syr1NptJco8+hPB6RqTq3W/AShxS0ke+PPHW7N2nE/pZYMzac9PMz4bqb78vMtJKedaWE7pKT+KrgQRk8R0npiX1PqNQp9SaqUhPTMrPNL5xuYZdUhxCuneCgcg+OKb7KOoU9qTo3IVqrrDlVlHlyE86AAHXG8ELwO1SFIJxwyTiA1eCCCAznab6v97+SHvRErYonr9rLptXNF7tpFLuTuidm6Y60w13DMJ31EcBlTYA85idkARSbYVmWn9m2hNNqBVLzM204PAozC14+haT54mzG87JmvR0mqM1Ra6w/N2vUXQ66GRlyUewE86kf0gQAFDp70EdGCGY6w0adoGql0UioMrafl6rMDChjeSXCpCh4lJIUD4CIdrk76NO07RSfqM2ytpup1h16WKhjfaS223vDxb6Vj/DGpS8hpPqtJS1zuUGh3G2GwWpucpeV7nSB+EQFY8R4RnWvW0haOmtGfty02RO3G2zzUtKolVNS0mMYSpWQAQOxKM5xg4HGATjalm2Z3aFvV5lQUlNTW0SP6zYCFD6UmH+2k+rdd/kZXoES9n5uZn56Ynpx5b8zMOqdedWcqWtRypRPhJJMUE141j04rehNzUWmXHz8/M0stMtdxTCd5eBwypsAecwE9IqTs2dW60PIyfQYltFC9B9Y9OKJoTbNFqdx8xPy1LDTzXcUwrdXg8MpbIPmMAuGwXXpai7QUpLTTiWxV6e/IIUo4G+d11I85awPGRG2corY9UrFr0G86ZLOTDNGU8xUEoTkttObhS4f1QpJBP648cI/TJ2bplRlqjT5hyWm5V1LzDzZwptaSClQPYQQDFB9n3aatjUCnStv3WhVNudTfNuNiXU5LznDBUgpB3c9qVYAzwJgJ4gEkAAkngAIpdsX2RU7G0OkpWsy7krUKpNOVJ6XcGFshYQlCVDsO42gkHiCcHoj2brpeiumTKr0qtq27SFtnnETcvRkqdCukFO4glKie3h78eDYO01pvclJmahUJ16iYm3Gpdh6WedcW0kDdcUW0KSCok96CceGA26CMz+/wBaT/pX/wCvmv8AbggP/9k=" alt="UMI Fund" style={{height:40,objectFit:"contain"}}/>
+          <img src="https://umifund.org/wp-content/uploads/2020/07/umi-logo-white-on-trans-1.png" alt="UMI Fund" style={{height:38,objectFit:"contain"}} onError={e=>{e.target.style.display="none";e.target.nextSibling.style.display="block";}}/><span style={{display:"none",fontSize:14,fontWeight:700,color:C.white,letterSpacing:1}}>UMI Fund</span>
         </div>
       </div>
     </div>
@@ -608,6 +688,11 @@ function App(){
     {tab==="costos"&&<>
       <Sec title="Tu emprendimiento" icon="🏷️">
         <Txt label="Nombre de tu iniciativa *" value={nombre} onChange={v=>{setNombre(v);setSub(false);}} placeholder="Ej: CompostaQuito, Tierra Viva..."/>
+        <Txt label="Nombre de quien llena el formulario" value={nombrePersona} onChange={setNombrePersona} placeholder="Tu nombre completo"/>
+        <Inp label="Edad" value={edad} onChange={setEdad} unit="años" min={15} max={99}/>
+        <Sel label="Identidad de género" value={genero} onChange={setGenero} options={[{value:"",label:"Selecciona..."},{value:"mujer",label:"Mujer"},{value:"hombre",label:"Hombre"},{value:"no_binario",label:"No binario"},{value:"prefiero_no_responder",label:"Prefiero no responder"}]}/>
+        <Inp label="¿Desde qué año operan?" value={anioInicio} onChange={setAnioInicio} unit="" min={2000} max={2026} step={1}/>
+        <Txt label="Ubicación(es) del compostaje" value={ubicaciones} onChange={setUbicaciones} placeholder="Ej: Cumbayá (planta principal), Tumbaco (punto de acopio)" hint="Barrio, sector o dirección donde procesan los residuos" multiline/>
         <Txt label="Email" value={email} onChange={setEmail} placeholder="tu@email.com"/>
         <Txt label="WhatsApp" value={tel} onChange={setTel} placeholder="0999..."/>
       </Sec>
@@ -623,27 +708,48 @@ function App(){
         {addBtn(C.earthL,()=>{setET([...eTiers,{id:nxE,tipo:"",cantidad:1,kgPorRecol:10,frecuencia:4,tarifa:25}]);sNxE(nxE+1);},"+ Tipo")}
         {R.emp>0&&<div style={{background:C.ghost,borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.barkL}}>Total: <strong style={{color:C.earthL}}>{R.emp}</strong> empresas · <strong style={{color:C.earthL}}>{fN(R.kgE)} kg/mes</strong></div>}
       </Sec>
-      <Sec title="Mano de obra" icon="👷" accent={C.bark}>
-        <div style={{fontSize:12,fontWeight:700,color:C.earth,marginBottom:6}}>👤 Tiempo completo</div>
-        <Inp label="Cantidad" value={numTC} onChange={setNumTC} unit="personas" min={0}/>
-        {numTC>0&&<><Inp label="Salario c/u" value={salTC} onChange={setSalTC} unit="$/mes" hint="SBU 2026: $482 mínimo"/>
-          <div style={{background:C.ghost,borderRadius:8,padding:"10px",marginBottom:12,fontSize:11}}>
-            <span style={{color:C.bark}}>Costo real: <strong style={{color:C.earth}}>{f$(R.costoTC)}/mes</strong> (salarios+IESS+décimos+fondos+vacaciones)</span>
-          </div></>}
-        <div style={{fontSize:12,fontWeight:700,color:C.leaf,marginBottom:6}}>⏰ Tiempo parcial (medio tiempo)</div>
-        <Inp label="Cantidad" value={numTP} onChange={setNumTP} unit="personas" min={0}/>
-        {numTP>0&&<>
-          <Inp label="Salario mensual c/u" value={salTP} onChange={setSalTP} unit="$/mes" hint="Medio tiempo SBU: $241. Proporcional a horas."/>
-          <Inp label="Horas diarias" value={horasTP} onChange={setHorasTP} unit="h/día" min={1} max={7} hint="Máximo 7h (parcial). 8h = tiempo completo."/>
-          <div style={{background:C.ghost,borderRadius:8,padding:"10px",marginBottom:12,fontSize:11}}>
-            <span style={{color:C.bark}}>Costo real: <strong style={{color:C.leaf}}>{f$(R.costoTPtotal)}/mes</strong> (con IESS y beneficios proporcionales)</span>
-          </div>
-        </>}
-        <div style={{fontSize:12,fontWeight:700,color:C.amber,marginBottom:6}}>🧤 Jornaleros (pago por día)</div>
+      <Sec title="Salarios y mano de obra" icon="👷" accent={C.bark}>
+        <IB>Agrega cada trabajador con su salario. Incluir los ingresos de fundadores y/o gerentes. Marca "Factura" si paga por factura (sin IESS ni beneficios).</IB>
+        {workers.map(w=>{
+          const wc=R.workersCalc?.find((_,i)=>workers[i]?.id===w.id);
+          return <div key={w.id} style={{background:C.ghost,borderRadius:10,padding:"12px 10px 8px",marginBottom:8,position:"relative"}}>
+            <button onClick={()=>setWorkers(workers.filter(x=>x.id!==w.id))} style={{position:"absolute",top:6,right:6,width:22,height:22,border:"none",borderRadius:5,background:`${C.danger}15`,color:C.danger,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 8px"}}>
+              <div style={{gridColumn:"1/-1",marginBottom:6,paddingRight:28}}>
+                <input type="text" value={w.rol} placeholder="Rol: operador, admin..." onChange={e=>setWorkers(workers.map(x=>x.id===w.id?{...x,rol:e.target.value}:x))}
+                  style={{width:"100%",padding:"6px 8px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:12,color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              <div style={{marginBottom:6}}>
+                <label style={{fontSize:9,fontWeight:600,color:C.barkL}}>Salario $/mes</label>
+                <input type="number" value={w.salario} min={0} onChange={e=>setWorkers(workers.map(x=>x.id===w.id?{...x,salario:Number(e.target.value)}:x))}
+                  style={{width:"100%",padding:"6px 7px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:12,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",textAlign:"right",boxSizing:"border-box"}}/>
+              </div>
+              <div style={{marginBottom:6}}>
+                <label style={{fontSize:9,fontWeight:600,color:C.barkL}}>Horas/día</label>
+                <select value={w.horas} onChange={e=>setWorkers(workers.map(x=>x.id===w.id?{...x,horas:Number(e.target.value)}:x))}
+                  style={{width:"100%",padding:"6px 5px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:11,color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}>
+                  {[{v:8,l:"8h (completo)"},{v:6,l:"6h"},{v:4,l:"4h (medio)"},{v:3,l:"3h"}].map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+                </select>
+              </div>
+              <div style={{gridColumn:"1/-1",marginBottom:4}}>
+                <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer",fontSize:12,color:C.bark}}>
+                  <input type="checkbox" checked={w.factura} onChange={e=>setWorkers(workers.map(x=>x.id===w.id?{...x,factura:e.target.checked}:x))} style={{accentColor:C.amber,width:15,height:15}}/>
+                  Factura (sin IESS ni beneficios)
+                </label>
+              </div>
+            </div>
+            <div style={{fontSize:10,color:C.barkL,borderTop:`1px dashed ${C.warm}`,paddingTop:3,display:"flex",justifyContent:"space-between"}}>
+              <span>{w.rol||"—"} {w.horas<8?`(${w.horas}h)`:""} {w.factura?"· factura":""}</span>
+              <span>Costo: <strong style={{color:C.earth}}>{f$(wc?.costoTotal||w.salario)}/mes</strong></span>
+            </div>
+          </div>;
+        })}
+        {addBtn(C.earth,()=>{setWorkers([...workers,{id:nxW,rol:"",salario:482,horas:8,factura:false}]);sNxW(nxW+1);},"+ Trabajador")}
+        <div style={{fontSize:12,fontWeight:700,color:C.amber,marginTop:14,marginBottom:6}}>Jornaleros (pago por día)</div>
         <Inp label="Cantidad" value={numJ} onChange={setNumJ} unit="personas" min={0}/>
         {numJ>0&&<><Inp label="$/día" value={pagoJ} onChange={setPagoJ} unit="$/día"/><Inp label="Días/mes" value={diasJ} onChange={setDiasJ} unit="días" min={1} max={30}/></>}
         <div style={{background:`${C.bark}0D`,borderRadius:8,padding:"10px 12px",marginTop:8}}>
-          <span style={{fontSize:12,color:C.barkL}}>Total: </span><span style={{fontSize:16,fontWeight:700,color:C.bark,fontFamily:"'DM Mono',monospace"}}>{f$(R.mobra)}/mes</span>
+          <span style={{fontSize:12,color:C.barkL}}>Total mano de obra: </span><span style={{fontSize:16,fontWeight:700,color:C.bark,fontFamily:"'DM Mono',monospace"}}>{f$(R.mobra)}/mes</span>
         </div>
       </Sec>
       <Sec title="Desgaste equipos" icon="🔧" accent={C.amber}>
@@ -699,17 +805,31 @@ function App(){
         <Inp label="Arriendo" value={arriendo} onChange={setArr} unit="$/mes"/>
         <Inp label="Agua" value={agua} onChange={setAgua} unit="$/mes"/>
         <Inp label="Luz" value={luz} onChange={setLuz} unit="$/mes"/>
-        <Inp label="Marketing / CM" value={mktCM} onChange={setMktCM} unit="$/mes"/>
+        <Inp label="Marketing / Community Manager" value={mktCM} onChange={setMktCM} unit="$/mes"/>
         <Inp label="Pauta" value={mktP} onChange={setMktP} unit="$/mes"/>
+        <Inp label="Costos administrativos" value={costosAdmin} onChange={setCostosAdmin} unit="$/mes"/>
+        {costosAdmin>0&&<Txt label="Detalle" value={costosAdminD} onChange={setCostosAdminD} placeholder="Ej: contador $50, software $15, papelería..."/>}
+        {tipoTr!=="publico"&&tipoTr!=="bicicargo"&&<Inp label="Seguro vehicular" value={seguroVeh} onChange={setSeguroVeh} unit="$/mes" hint="Prorrateo mensual de la póliza anual"/>}
         <Inp label="Otros fijos" value={otrosF} onChange={setOtrosF} unit="$/mes"/>
-        {otrosF>0&&<Txt label="¿Qué?" value={otrosFD} onChange={setOtrosFD} placeholder="Seguro, contador..."/>}
+        {otrosF>0&&<Txt label="¿Qué?" value={otrosFD} onChange={setOtrosFD} placeholder="Ej: bodega adicional, telefonía..."/>}
       </Sec>
       <Sec title="Variables" icon="⛽" accent={C.barkL}>
         <Sel label="Transporte" value={tipoTr} onChange={setTipoTr} options={TRANS}/>
-        {tipoTr!=="publico"&&<Inp label={tipoTr==="bicicargo"?"Mant. bici":"Combustible"} value={comb} onChange={setComb} unit="$/mes"/>}
+        {tipoTr!=="publico"&&tipoTr!=="bicicargo"&&<>
+          <Sel label="Tipo de combustible" value={tipoComb} onChange={setTipoComb} options={COMBUSTIBLES}/>
+          <Inp label="Gasto en combustible" value={comb} onChange={setComb} unit="$/mes" hint={R.galMes>0?`≈ ${fN(R.galMes)} galones/mes → ${fN(R.co2TransMes*1000)} kg CO₂/mes`:""}/>
+        </>}
+        {tipoTr==="bicicargo"&&<Inp label="Mantenimiento bici" value={comb} onChange={setComb} unit="$/mes"/>}
         {(tipoTr==="publico"||tipoTr==="mixto")&&<Inp label="Pasajes bus/trole" value={trPub} onChange={setTrPub} unit="$/mes"/>}
-        {tipoTr!=="publico"&&<Inp label="Mant. vehículo" value={mantV} onChange={setMantV} unit="$/mes"/>}
+        {tipoTr!=="publico"&&tipoTr!=="bicicargo"&&<>
+          <Inp label="Cambio de aceite y filtros" value={mantAceite} onChange={setMantAceite} unit="$/mes" hint="Prorrateo mensual"/>
+          <Inp label="Otros mantenimientos vehículo" value={mantOtros} onChange={setMantOtros} unit="$/mes"/>
+          {mantOtros>0&&<Txt label="¿Cuáles?" value={mantOtrosD} onChange={setMantOtrosD} placeholder="Ej: llantas, frenos, alineación, lavado..."/>}
+          <Inp label="Gastos mayores del vehículo (anual)" value={gastoMayorVeh} onChange={setGastoMayorVeh} unit="$/año" hint="Averías, reparaciones mayores. Se divide entre 12 meses."/>
+          {gastoMayorVeh>0&&<Txt label="Detalle" value={gastoMayorVehD} onChange={setGastoMayorVehD} placeholder="Ej: reparación motor, transmisión, carrocería..."/>}
+        </>}
         <Inp label="Insumos compostaje" value={insumos} onChange={setInsumos} unit="$/mes"/>
+        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos, cal, melaza..."/>}
         <Inp label="Baldes" value={baldes} onChange={setBaldes} unit="$/mes"/>
         <Inp label="Otros" value={otrosV} onChange={setOtrosV} unit="$/mes"/>
         {otrosV>0&&<Txt label="¿Qué incluyen?" value={otrosVD} onChange={setOtrosVD} placeholder="Ej: empaques, análisis de laboratorio, fumigación..."/>}
@@ -747,15 +867,36 @@ function App(){
         <div style={{background:C.ghost,borderRadius:8,padding:"8px 12px",margin:"6px 0 12px"}}><span style={{fontSize:12,color:C.barkL}}>Empresas: </span><span style={{fontSize:14,fontWeight:700,color:C.earthL,fontFamily:"'DM Mono',monospace"}}>{f$(R.incE)}/mes</span></div></>}
       </Sec>
       <Sec title="Compost" icon="🌿" accent={C.leaf}>
-        <Inp label="Conversión %" value={tasaC} onChange={setTasaC} unit="%" min={10} max={50}/>
-        <Inp label="Kg de compost vendidos/mes" value={kgVend} onChange={setKgVend} unit="kg/mes" min={0} hint={`Produces ${fN(R.kgComp)} kg/mes. El resto puede ser donación o autoconsumo.`}/>
+        <Txt label="Tipo de compostaje" value={tipoCompostaje} onChange={setTipoCompostaje} placeholder="Ej: compostaje aeróbico en pilas, vermicompostaje, bokashi, compostaje en trincheras..." hint="Describe brevemente el método que utilizas"/>
+        <Inp label="Porcentaje de conversión estimada de residuos orgánicos a enmienda orgánica" value={tasaC} onChange={setTasaC} unit="%" min={10} max={50} hint="Incluye el volumen total de conversión incluyendo material seco y otros insumos utilizados."/>
+        <Inp label="kg de compost vendidos/mes" value={kgVend} onChange={setKgVend} unit="kg/mes" min={0} hint={`Produces ${fN(R.kgComp)} kg/mes. El resto puede ser donación o autoconsumo.`}/>
         <Inp label="$/kg" value={precKg} onChange={setPrecKg} unit="$/kg" step={0.05}/>
         <div style={{background:`${C.leaf}0D`,borderRadius:8,padding:"10px 12px"}}>
           <span style={{fontSize:16,fontWeight:700,color:C.leaf,fontFamily:"'DM Mono',monospace"}}>{f$(R.incComp)}/mes</span>
           <span style={{fontSize:11,color:C.barkL}}> ({fN(R.kgComp)} kg)</span>
         </div>
       </Sec>
-      <Sec title="Otros" icon="✨" accent={C.amber}><Inp label="Talleres, bonos" value={otrosIng} onChange={setOtrosIng} unit="$/mes"/></Sec>
+      <Sec title="Otros ingresos" icon="✨" accent={C.amber}>
+        {otrosIngItems.map(item=><div key={item.id} style={{background:C.ghost,borderRadius:8,padding:"10px 10px 6px",marginBottom:6,position:"relative"}}>
+          <button onClick={()=>setOtrosIngItems(otrosIngItems.filter(x=>x.id!==item.id))} style={{position:"absolute",top:6,right:6,width:20,height:20,border:"none",borderRadius:4,background:`${C.danger}15`,color:C.danger,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+          <div style={{display:"flex",gap:8,alignItems:"flex-end",paddingRight:24}}>
+            <div style={{flex:1}}>
+              <label style={{fontSize:9,fontWeight:600,color:C.barkL}}>¿Qué es?</label>
+              <input type="text" value={item.desc} placeholder="Ej: talleres, consultoría, bonos..." onChange={e=>setOtrosIngItems(otrosIngItems.map(x=>x.id===item.id?{...x,desc:e.target.value}:x))}
+                style={{width:"100%",padding:"6px 8px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:12,color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
+            </div>
+            <div style={{width:90}}>
+              <label style={{fontSize:9,fontWeight:600,color:C.barkL}}>$/mes</label>
+              <input type="number" value={item.monto} min={0} onChange={e=>setOtrosIngItems(otrosIngItems.map(x=>x.id===item.id?{...x,monto:Number(e.target.value)}:x))}
+                style={{width:"100%",padding:"6px 7px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:12,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",textAlign:"right",boxSizing:"border-box"}}/>
+            </div>
+          </div>
+        </div>)}
+        {addBtn(C.amber,()=>{setOtrosIngItems([...otrosIngItems,{id:nxOI,desc:"",monto:0}]);sNxOI(nxOI+1);},"+ Otro ingreso")}
+        {otrosIng>0&&<div style={{background:`${C.amber}15`,borderRadius:8,padding:"10px 12px",marginTop:8}}>
+          <span style={{fontSize:12,color:C.barkL}}>Total otros: </span><span style={{fontSize:14,fontWeight:700,color:C.amber,fontFamily:"'DM Mono',monospace"}}>{f$(otrosIng)}/mes</span>
+        </div>}
+      </Sec>
       <div style={{background:`linear-gradient(135deg,${C.earth},${C.leaf})`,borderRadius:14,padding:"18px 16px",color:C.white}}>
         <div style={{fontSize:11,fontWeight:600,opacity:0.8,marginBottom:3}}>INGRESO TOTAL</div>
         <div style={{fontSize:26,fontWeight:700,fontFamily:"'DM Mono',monospace"}}>{f$(R.incTotal)}/mes</div>
@@ -767,6 +908,41 @@ function App(){
         {sending?"Enviando...":"🚀 Ver resultados"}
       </button>}
       {sendError&&<p style={{color:C.amber,fontSize:12,textAlign:"center",marginTop:6}}>{sendError}</p>}
+    </>}
+
+    {tab==="cobertura"&&<>
+      <Sec title="Parroquias urbanas" icon="🏙️">
+        <IB>Ingresa el número de clientes que tienes en cada parroquia urbana donde operas (norte a sur).</IB>
+        <div style={{maxHeight:400,overflowY:"auto",marginBottom:12}}>
+          {PARR_URBANAS.map(p=><div key={p} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${C.ghost}`}}>
+            <span style={{flex:1,fontSize:12,color:C.bark,minWidth:100}}>{p}</span>
+            <input type="number" value={parrUrb[p]||0} min={0} onChange={e=>setParrUrb({...parrUrb,[p]:Number(e.target.value)})}
+              style={{width:60,padding:"5px 6px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",textAlign:"right"}}/>
+          </div>)}
+        </div>
+        <Txt label="Otra parroquia urbana (especifica nombre y # clientes)" value={otraParrUrb} onChange={setOtraParrUrb} placeholder="Ej: Barrio X — 5 clientes"/>
+      </Sec>
+      <Sec title="Parroquias rurales" icon="🌄">
+        <IB>Ingresa el número de clientes por parroquia rural (orden alfabético).</IB>
+        <div style={{maxHeight:400,overflowY:"auto",marginBottom:12}}>
+          {PARR_RURALES.map(p=><div key={p} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${C.ghost}`}}>
+            <span style={{flex:1,fontSize:12,color:C.bark,minWidth:100}}>{p}</span>
+            <input type="number" value={parrRur[p]||0} min={0} onChange={e=>setParrRur({...parrRur,[p]:Number(e.target.value)})}
+              style={{width:60,padding:"5px 6px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",textAlign:"right"}}/>
+          </div>)}
+        </div>
+        <Txt label="Otra parroquia rural, Rumiñahui, Mejía u otro cantón" value={otraParrRur} onChange={setOtraParrRur} placeholder="Ej: Sangolquí — 8 clientes, Machachi — 3 clientes"/>
+      </Sec>
+      <div style={{background:`${C.earth}10`,borderRadius:12,padding:"14px",marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+          <span style={{color:C.barkL}}>Parroquias con clientes:</span>
+          <span style={{fontWeight:700,color:C.earth}}>{Object.values(parrUrb).filter(v=>v>0).length + Object.values(parrRur).filter(v=>v>0).length}</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginTop:4}}>
+          <span style={{color:C.barkL}}>Total clientes en parroquias:</span>
+          <span style={{fontWeight:700,color:C.earth,fontFamily:"'DM Mono',monospace"}}>{Object.values(parrUrb).reduce((s,v)=>s+(Number(v)||0),0) + Object.values(parrRur).reduce((s,v)=>s+(Number(v)||0),0)}</span>
+        </div>
+      </div>
     </>}
 
     {tab==="resultados"&&!canView&&
@@ -784,10 +960,12 @@ function App(){
           {l:"Ingresos",v:R.incTotal,b:true,c:C.earth},
           {l:"  Hogares",v:R.incH,n:true},{l:"  Empresas",v:R.incE,n:true},{l:"  Compost",v:R.incComp,n:true},{l:"  Otros",v:otrosIng,n:true},
           {d:true},
-          {l:"(-) Mano obra TC",v:R.costoTC,c:C.danger},{l:"(-) Tiempo parcial",v:R.costoTPtotal,c:C.danger},{l:"(-) Jornaleros",v:R.costoJ,c:C.danger},
+          {l:"(-) Salarios y mano de obra",v:R.costoWorkers,c:C.danger},{l:"(-) Jornaleros",v:R.costoJ,c:C.danger},
           {l:"(-) Arriendo",v:arriendo,c:C.danger},{l:"(-) Agua+Luz",v:servBas,c:C.danger},
           {l:"(-) Depreciación",v:R.depM,c:C.danger},{l:"(-) Amortización",v:R.amortM,c:C.danger},
           {l:"(-) Marketing",v:mkt,c:C.danger},
+          costosAdmin>0?{l:"(-) Administrativos",v:costosAdmin,c:C.danger}:null,
+          seguroVeh>0?{l:"(-) Seguro vehicular",v:seguroVeh,c:C.danger}:null,
           otrosF>0?{l:`(-) ${otrosFD||"Otros"}`,v:otrosF,c:C.danger}:null,
           {l:"(-) Variables",v:R.cv,c:C.danger},{d:true},
           {l:"= Ut. bruta",v:R.uBruta,b:true,c:R.uBruta>=0?C.success:C.danger},
@@ -845,6 +1023,11 @@ function App(){
                 <td style={{padding:"6px 0",color:C.bark}}>N₂O emitido (compostaje)</td>
                 <td style={{padding:"6px 0",textAlign:"right",fontFamily:"'DM Mono',monospace",color:C.danger}}>−{fN(R.n2oCompostajeAnio)} t N₂O</td>
                 <td style={{padding:"6px 0",textAlign:"right",fontFamily:"'DM Mono',monospace",color:C.danger}}>−{fN(R.n2oCo2eq)}</td>
+              </tr>
+              <tr style={{borderBottom:`1px solid ${C.warm}`}}>
+                <td style={{padding:"6px 0",color:C.bark}}>CO₂ transporte (combustible)</td>
+                <td style={{padding:"6px 0",textAlign:"right",fontFamily:"'DM Mono',monospace",color:C.danger}}>−{fN(R.co2TransAnio)} t CO₂</td>
+                <td style={{padding:"6px 0",textAlign:"right",fontFamily:"'DM Mono',monospace",color:C.danger}}>−{fN(R.co2TransAnio)}</td>
               </tr>
               <tr style={{borderBottom:`1px solid ${C.warm}`}}>
                 <td style={{padding:"6px 0",color:C.barkL,fontSize:11}}>CO₂ biogénico (compostaje)*</td>
