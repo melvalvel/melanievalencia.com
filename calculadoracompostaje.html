@@ -23,7 +23,7 @@ const {useState,useMemo,useCallback}=React;
 // ══════════════════════════════════════════
 // CONFIGURACIÓN: Pega aquí tu URL de Google Apps Script
 // ══════════════════════════════════════════
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyIX1nnA6nLwyJ20vujLLtgot4Or9jYrqCji42-MUMRT0y6BVwMOfZJKO77sPaKe7QQ/exec"; // pega tu URL de Apps Script
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7qpnr-zN_V4VIg5CY3LZaxzQQAoZm-K7iuU-FlxBoIWF0fR132neAMCMbg1rC7ZwM/exec"; // pega tu URL de Apps Script
 
 function enviarDatos(datos) {
   fetch(GOOGLE_SCRIPT_URL, {
@@ -207,10 +207,16 @@ function TierCard({t,onChange,onRemove,nLabel,nField,cLabel}){
   </div>;
 }
 
-const TABS=[{id:"costos",label:"Costos"},{id:"ingresos",label:"Ingresos"},{id:"resultados",label:"Resultados"}];
+const TABS=[{id:"costos",label:"Costos"},{id:"ingresos",label:"Ingresos"},{id:"cobertura",label:"Cobertura"},{id:"resultados",label:"Resultados"}];
+
+const PARR_URBANAS=["Carcelén","El Condado","Ponceano","Cotocollao","Comité del Pueblo","La Concepción","Kennedy","El Inca","Jipijapa","Iñaquito","Rumipamba","Cochapamba","Belisario Quevedo","Mariscal Sucre (La Floresta)","Itchimbía","Centro Histórico","San Juan","La Libertad","Chimbacalle","La Ferroviaria","Puengasí","La Magdalena","Chilibulo","San Bartolo","La Mena","Solanda","La Argelia","Chillogallo","Quitumbe","La Ecuatoriana","Guamaní","Turubamba"];
+const PARR_RURALES=["Alangasí","Amaguaña","Atahualpa","Calacalí","Calderón","Chávezpamba","Checa","Conocoto","Cumbayá","El Quinche","Gualea","Guangopolo","Guayllabamba","La Merced","Llano Chico","Lloa","Mindo","Nanegal","Nanegalito","Nayón","Nono","Pacto","Perucho","Pifo","Píntag","Puembo","San Antonio de Pichincha","San José de Minas","Tababela","Tumbaco","Yaruquí","Zámbiza"];
 
 function App(){
   const [nombre,setNombre]=useState("");
+  const [nombrePersona,setNombrePersona]=useState("");
+  const [edad,setEdad]=useState("");
+  const [genero,setGenero]=useState("");
   const [email,setEmail]=useState("");
   const [tel,setTel]=useState("");
   const [submitted,setSub]=useState(false);
@@ -218,6 +224,10 @@ function App(){
   const [sendError,setSendError]=useState("");
   const [anioInicio,setAnioInicio]=useState(2024);
   const [ubicaciones,setUbicaciones]=useState("");
+  const [parrUrb,setParrUrb]=useState({});
+  const [parrRur,setParrRur]=useState({});
+  const [otraParrUrb,setOtraParrUrb]=useState("");
+  const [otraParrRur,setOtraParrRur]=useState("");
 
   const [hTiers,setHT]=useState([
     {id:1,plan:"Semanal",cantidad:50,kgPorRecol:4,frecuencia:4,tarifa:10},
@@ -622,8 +632,11 @@ function App(){
   const enviar=useCallback(async()=>{
     if(!nombre.trim())return;setSending(true);setSendError("");
     const payload={
-      empresa:nombre.trim(),email:email.trim(),tel:tel.trim(),
+      empresa:nombre.trim(),nombrePersona:nombrePersona.trim(),edad:edad,genero:genero,email:email.trim(),tel:tel.trim(),
       anioInicio:anioInicio,ubicaciones:ubicaciones.trim(),
+      parroquiasUrbanas:Object.fromEntries(Object.entries(parrUrb).filter(([k,v])=>v>0)),
+      parroquiasRurales:Object.fromEntries(Object.entries(parrRur).filter(([k,v])=>v>0)),
+      otraParroquiaUrbana:otraParrUrb,otraParroquiaRural:otraParrRur,
       hogares:R.hog,empresasClientes:R.emp,kgMensuales:R.kgM,
       ingresoTotal:R.incTotal,costoTotal:R.costoT,utilidadNeta:R.uNeta,roi:R.roi,
       tipoTransporte:tipoTr,tipoCombustible:tipoComb,galonesMes:R.galMes,
@@ -639,7 +652,7 @@ function App(){
       hogarTiers:hTiers.filter(t=>t.cantidad>0),empresaTiers:eTiers.filter(t=>t.cantidad>0)
     };
     try{if(GOOGLE_SCRIPT_URL){await fetch(GOOGLE_SCRIPT_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});}setSub(true);}catch(e){setSendError("Error al enviar. Tus resultados están disponibles de todas formas.");setSub(true);}setSending(false);
-  },[nombre,email,tel,anioInicio,ubicaciones,R,tipoTr,tipoComb,tipoCompostaje,costosAdmin,costosAdminD,seguroVeh,mantAceite,mantOtros,mantOtrosD,gastoMayorVeh,gastoMayorVehD,workers,otrosIngItems,certs,ccerts,hTiers,eTiers]);
+  },[nombre,genero,email,tel,anioInicio,ubicaciones,parrUrb,parrRur,otraParrUrb,otraParrRur,R,tipoTr,tipoComb,tipoCompostaje,costosAdmin,costosAdminD,seguroVeh,mantAceite,mantOtros,mantOtrosD,gastoMayorVeh,gastoMayorVehD,workers,otrosIngItems,certs,ccerts,hTiers,eTiers]);
 
   const addBtn=(color,onClick,label)=><button onClick={onClick} style={{width:"100%",padding:"9px",border:`1.5px dashed ${color}60`,borderRadius:10,background:`${color}08`,color,fontSize:12,fontWeight:600,cursor:"pointer",marginTop:3}}>{label}</button>;
 
@@ -675,6 +688,9 @@ function App(){
     {tab==="costos"&&<>
       <Sec title="Tu emprendimiento" icon="🏷️">
         <Txt label="Nombre de tu iniciativa *" value={nombre} onChange={v=>{setNombre(v);setSub(false);}} placeholder="Ej: CompostaQuito, Tierra Viva..."/>
+        <Txt label="Nombre de quien llena el formulario" value={nombrePersona} onChange={setNombrePersona} placeholder="Tu nombre completo"/>
+        <Inp label="Edad" value={edad} onChange={setEdad} unit="años" min={15} max={99}/>
+        <Sel label="Identidad de género" value={genero} onChange={setGenero} options={[{value:"",label:"Selecciona..."},{value:"mujer",label:"Mujer"},{value:"hombre",label:"Hombre"},{value:"no_binario",label:"No binario"},{value:"prefiero_no_responder",label:"Prefiero no responder"}]}/>
         <Inp label="¿Desde qué año operan?" value={anioInicio} onChange={setAnioInicio} unit="" min={2000} max={2026} step={1}/>
         <Txt label="Ubicación(es) del compostaje" value={ubicaciones} onChange={setUbicaciones} placeholder="Ej: Cumbayá (planta principal), Tumbaco (punto de acopio)" hint="Barrio, sector o dirección donde procesan los residuos" multiline/>
         <Txt label="Email" value={email} onChange={setEmail} placeholder="tu@email.com"/>
@@ -813,7 +829,7 @@ function App(){
           {gastoMayorVeh>0&&<Txt label="Detalle" value={gastoMayorVehD} onChange={setGastoMayorVehD} placeholder="Ej: reparación motor, transmisión, carrocería..."/>}
         </>}
         <Inp label="Insumos compostaje" value={insumos} onChange={setInsumos} unit="$/mes"/>
-        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos..."/>}
+        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos, cal, melaza..."/>}
         <Inp label="Baldes" value={baldes} onChange={setBaldes} unit="$/mes"/>
         <Inp label="Otros" value={otrosV} onChange={setOtrosV} unit="$/mes"/>
         {otrosV>0&&<Txt label="¿Qué incluyen?" value={otrosVD} onChange={setOtrosVD} placeholder="Ej: empaques, análisis de laboratorio, fumigación..."/>}
@@ -894,6 +910,41 @@ function App(){
       {sendError&&<p style={{color:C.amber,fontSize:12,textAlign:"center",marginTop:6}}>{sendError}</p>}
     </>}
 
+    {tab==="cobertura"&&<>
+      <Sec title="Parroquias urbanas" icon="🏙️">
+        <IB>Ingresa el número de clientes que tienes en cada parroquia urbana donde operas (norte a sur).</IB>
+        <div style={{maxHeight:400,overflowY:"auto",marginBottom:12}}>
+          {PARR_URBANAS.map(p=><div key={p} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${C.ghost}`}}>
+            <span style={{flex:1,fontSize:12,color:C.bark,minWidth:100}}>{p}</span>
+            <input type="number" value={parrUrb[p]||0} min={0} onChange={e=>setParrUrb({...parrUrb,[p]:Number(e.target.value)})}
+              style={{width:60,padding:"5px 6px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",textAlign:"right"}}/>
+          </div>)}
+        </div>
+        <Txt label="Otra parroquia urbana (especifica nombre y # clientes)" value={otraParrUrb} onChange={setOtraParrUrb} placeholder="Ej: Barrio X — 5 clientes"/>
+      </Sec>
+      <Sec title="Parroquias rurales" icon="🌄">
+        <IB>Ingresa el número de clientes por parroquia rural (orden alfabético).</IB>
+        <div style={{maxHeight:400,overflowY:"auto",marginBottom:12}}>
+          {PARR_RURALES.map(p=><div key={p} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${C.ghost}`}}>
+            <span style={{flex:1,fontSize:12,color:C.bark,minWidth:100}}>{p}</span>
+            <input type="number" value={parrRur[p]||0} min={0} onChange={e=>setParrRur({...parrRur,[p]:Number(e.target.value)})}
+              style={{width:60,padding:"5px 6px",border:`1px solid ${C.warm}`,borderRadius:6,fontSize:12,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",textAlign:"right"}}/>
+          </div>)}
+        </div>
+        <Txt label="Otra parroquia rural, Rumiñahui, Mejía u otro cantón" value={otraParrRur} onChange={setOtraParrRur} placeholder="Ej: Sangolquí — 8 clientes, Machachi — 3 clientes"/>
+      </Sec>
+      <div style={{background:`${C.earth}10`,borderRadius:12,padding:"14px",marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+          <span style={{color:C.barkL}}>Parroquias con clientes:</span>
+          <span style={{fontWeight:700,color:C.earth}}>{Object.values(parrUrb).filter(v=>v>0).length + Object.values(parrRur).filter(v=>v>0).length}</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginTop:4}}>
+          <span style={{color:C.barkL}}>Total clientes en parroquias:</span>
+          <span style={{fontWeight:700,color:C.earth,fontFamily:"'DM Mono',monospace"}}>{Object.values(parrUrb).reduce((s,v)=>s+(Number(v)||0),0) + Object.values(parrRur).reduce((s,v)=>s+(Number(v)||0),0)}</span>
+        </div>
+      </div>
+    </>}
+
     {tab==="resultados"&&!canView&&
       <Sec title="Desbloquea resultados" icon="🔐">
         <IB>Completa tus datos en Costos (incluyendo el nombre de tu iniciativa) y llena Ingresos. Luego presiona "Ver resultados" en la pestaña de Ingresos.</IB>
@@ -913,7 +964,7 @@ function App(){
           {l:"(-) Arriendo",v:arriendo,c:C.danger},{l:"(-) Agua+Luz",v:servBas,c:C.danger},
           {l:"(-) Depreciación",v:R.depM,c:C.danger},{l:"(-) Amortización",v:R.amortM,c:C.danger},
           {l:"(-) Marketing",v:mkt,c:C.danger},
-          costosAdmin>0?{l:"(-) Administrativos (contabilidad, otros)",v:costosAdmin,c:C.danger}:null,
+          costosAdmin>0?{l:"(-) Administrativos",v:costosAdmin,c:C.danger}:null,
           seguroVeh>0?{l:"(-) Seguro vehicular",v:seguroVeh,c:C.danger}:null,
           otrosF>0?{l:`(-) ${otrosFD||"Otros"}`,v:otrosF,c:C.danger}:null,
           {l:"(-) Variables",v:R.cv,c:C.danger},{d:true},
