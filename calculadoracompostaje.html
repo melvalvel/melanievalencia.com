@@ -23,7 +23,7 @@ const {useState,useMemo,useCallback}=React;
 // ══════════════════════════════════════════
 // CONFIGURACIÓN: Pega aquí tu URL de Google Apps Script
 // ══════════════════════════════════════════
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-D9-XCjTUXCTE3czf1eBLVUG6VRk50P2jc-UrYKcDynFb6tJZH4os-as-YYU-cmgD/exec"; // pega tu URL de Apps Script
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7qpnr-zN_V4VIg5CY3LZaxzQQAoZm-K7iuU-FlxBoIWF0fR132neAMCMbg1rC7ZwM/exec"; // pega tu URL de Apps Script
 
 function enviarDatos(datos) {
   fetch(GOOGLE_SCRIPT_URL, {
@@ -464,7 +464,7 @@ function App(){
       ["  Amortización intangibles",null,R.amortM,""],
       ["  Marketing / Community Manager",null,mktCM,""],
       ["  Pauta publicitaria",null,mktP,""],
-      costosAdmin>0?["  Costos administrativos (contador, otros)",null,costosAdmin,costosAdminD]:null,
+      costosAdmin>0?["  Costos administrativos",null,costosAdmin,costosAdminD]:null,
       seguroVeh>0?["  Seguro vehicular",null,seguroVeh,""]:null,
       otrosF>0?["  "+otrosFD||"Otros fijos",null,otrosF,""]:null,
       [],
@@ -813,7 +813,7 @@ function App(){
           {gastoMayorVeh>0&&<Txt label="Detalle" value={gastoMayorVehD} onChange={setGastoMayorVehD} placeholder="Ej: reparación motor, transmisión, carrocería..."/>}
         </>}
         <Inp label="Insumos compostaje" value={insumos} onChange={setInsumos} unit="$/mes"/>
-        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos..."/>}
+        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos, cal, melaza..."/>}
         <Inp label="Baldes" value={baldes} onChange={setBaldes} unit="$/mes"/>
         <Inp label="Otros" value={otrosV} onChange={setOtrosV} unit="$/mes"/>
         {otrosV>0&&<Txt label="¿Qué incluyen?" value={otrosVD} onChange={setOtrosVD} placeholder="Ej: empaques, análisis de laboratorio, fumigación..."/>}
