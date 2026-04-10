@@ -813,7 +813,7 @@ function App(){
           {gastoMayorVeh>0&&<Txt label="Detalle" value={gastoMayorVehD} onChange={setGastoMayorVehD} placeholder="Ej: reparación motor, transmisión, carrocería..."/>}
         </>}
         <Inp label="Insumos compostaje" value={insumos} onChange={setInsumos} unit="$/mes"/>
-        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos, cal, melaza..."/>}
+        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos..."/>}
         <Inp label="Baldes" value={baldes} onChange={setBaldes} unit="$/mes"/>
         <Inp label="Otros" value={otrosV} onChange={setOtrosV} unit="$/mes"/>
         {otrosV>0&&<Txt label="¿Qué incluyen?" value={otrosVD} onChange={setOtrosVD} placeholder="Ej: empaques, análisis de laboratorio, fumigación..."/>}
