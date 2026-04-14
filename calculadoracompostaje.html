@@ -23,7 +23,7 @@ const {useState,useMemo,useCallback}=React;
 // ══════════════════════════════════════════
 // CONFIGURACIÓN: Pega aquí tu URL de Google Apps Script
 // ══════════════════════════════════════════
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzoszfSEm1YXzg0lklkd5w6mZSXxfVWJtTL2DTojcyYX_p6opuPI1wyaOjpmLi2y3A_/exec"; // pega tu URL de Apps Script
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7qpnr-zN_V4VIg5CY3LZaxzQQAoZm-K7iuU-FlxBoIWF0fR132neAMCMbg1rC7ZwM/exec"; // pega tu URL de Apps Script
 
 function enviarDatos(datos) {
   fetch(GOOGLE_SCRIPT_URL, {
@@ -173,7 +173,8 @@ function AssetCard({a,onChange,onRemove,showRes}){
     </div>
   </div>;
 }
-function TierCard({t,onChange,onRemove,nLabel,nField,cLabel}){
+function TierCard({t,onChange,onRemove,nLabel,nField,cLabel,showIVA,ivaRate}){
+  const tarifaConIVA=showIVA?Math.round(t.tarifa*(1+ivaRate)*100)/100:t.tarifa;
   return <div style={{background:C.ghost,borderRadius:10,padding:"12px 12px 6px",marginBottom:10,position:"relative"}}>
     <button onClick={onRemove} style={{position:"absolute",top:8,right:8,width:24,height:24,border:"none",borderRadius:5,background:`${C.danger}15`,color:C.danger,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 10px"}}>
@@ -195,14 +196,20 @@ function TierCard({t,onChange,onRemove,nLabel,nField,cLabel}){
         </select>
       </div>
       <div style={{marginBottom:8}}>
-        <label style={{fontSize:10,fontWeight:600,color:C.barkL}}>Tarifa $/mes</label>
+        <label style={{fontSize:10,fontWeight:600,color:C.barkL}}>Tarifa sin IVA $/mes</label>
         <input type="number" value={t.tarifa} min={0} step={0.5} onChange={e=>onChange({...t,tarifa:Number(e.target.value)})}
           style={{width:"100%",padding:"7px 9px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:12,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
       </div>
+      {showIVA&&<div style={{gridColumn:"1/-1",marginBottom:6}}>
+        <label style={{fontSize:10,fontWeight:600,color:C.barkL}}>Tarifa con IVA $/mes</label>
+        <input type="number" value={tarifaConIVA} min={0} step={0.5} onChange={e=>{const sinIVA=Math.round(Number(e.target.value)/(1+ivaRate)*100)/100;onChange({...t,tarifa:sinIVA});}}
+          style={{width:"100%",padding:"7px 9px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:12,fontFamily:"'DM Mono',monospace",color:C.amber,background:`${C.amber}08`,outline:"none",boxSizing:"border-box"}}/>
+        <span style={{fontSize:9,color:C.barkL}}>IVA {(ivaRate*100).toFixed(0)}%: {f$(t.tarifa*ivaRate)}/mes</span>
+      </div>}
     </div>
     <div style={{fontSize:10,color:C.barkL,borderTop:`1px dashed ${C.warm}`,paddingTop:4,display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:3}}>
       <span>{t.cantidad}×{fN(t.kgPorRecol)}kg×{t.frecuencia}x = <strong style={{color:C.earth}}>{fN(t.cantidad*t.kgPorRecol*t.frecuencia)} kg/mes</strong></span>
-      <span><strong style={{color:C.earth}}>{f$(t.cantidad*t.tarifa)}/mes</strong></span>
+      <span><strong style={{color:C.earth}}>{f$(t.cantidad*t.tarifa)}/mes</strong>{showIVA&&<span style={{color:C.barkL}}> ({f$(tarifaConIVA*t.cantidad)} con IVA)</span>}</span>
     </div>
   </div>;
 }
@@ -217,6 +224,8 @@ function App(){
   const [nombrePersona,setNombrePersona]=useState("");
   const [edad,setEdad]=useState("");
   const [genero,setGenero]=useState("");
+  const [facturaIVA,setFacturaIVA]=useState(false);
+  const IVA=0.15;
   const [email,setEmail]=useState("");
   const [tel,setTel]=useState("");
   const [submitted,setSub]=useState(false);
@@ -474,9 +483,9 @@ function App(){
       ["  Amortización intangibles",null,R.amortM,""],
       ["  Marketing / Community Manager",null,mktCM,""],
       ["  Pauta publicitaria",null,mktP,""],
-      costosAdmin>0?["  Costos administrativos (contabilidad)",null,costosAdmin,costosAdminD]:null,
+      costosAdmin>0?["  Costos administrativos",null,costosAdmin,costosAdminD]:null,
       seguroVeh>0?["  Seguro vehicular",null,seguroVeh,""]:null,
-      otrosF>0?["  "+otrosFD||"Otros fijos (ejemplo: pago de préstamos)",null,otrosF,""]:null,
+      otrosF>0?["  "+otrosFD||"Otros fijos",null,otrosF,""]:null,
       [],
       ["(-) Costos variables",null,R.cv,R.incTotal>0?R.cv/R.incTotal:0],
       [],
@@ -632,7 +641,7 @@ function App(){
   const enviar=useCallback(async()=>{
     if(!nombre.trim())return;setSending(true);setSendError("");
     const payload={
-      empresa:nombre.trim(),nombrePersona:nombrePersona.trim(),edad:edad,genero:genero,email:email.trim(),tel:tel.trim(),
+      empresa:nombre.trim(),nombrePersona:nombrePersona.trim(),edad:edad,genero:genero,facturaIVA:facturaIVA,email:email.trim(),tel:tel.trim(),
       anioInicio:anioInicio,ubicaciones:ubicaciones.trim(),
       parroquiasUrbanas:Object.fromEntries(Object.entries(parrUrb).filter(([k,v])=>v>0)),
       parroquiasRurales:Object.fromEntries(Object.entries(parrRur).filter(([k,v])=>v>0)),
@@ -693,18 +702,25 @@ function App(){
         <Sel label="Identidad de género" value={genero} onChange={setGenero} options={[{value:"",label:"Selecciona..."},{value:"mujer",label:"Mujer"},{value:"hombre",label:"Hombre"},{value:"no_binario",label:"No binario"},{value:"prefiero_no_responder",label:"Prefiero no responder"}]}/>
         <Inp label="¿Desde qué año operan?" value={anioInicio} onChange={setAnioInicio} unit="" min={2000} max={2026} step={1}/>
         <Txt label="Ubicación(es) del compostaje" value={ubicaciones} onChange={setUbicaciones} placeholder="Ej: Cumbayá (planta principal), Tumbaco (punto de acopio)" hint="Barrio, sector o dirección donde procesan los residuos" multiline/>
+        <div style={{marginBottom:14}}>
+          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,fontWeight:600,color:C.bark}}>
+            <input type="checkbox" checked={facturaIVA} onChange={e=>setFacturaIVA(e.target.checked)} style={{accentColor:C.earth,width:18,height:18}}/>
+            ¿Facturan con IVA? (15%)
+          </label>
+          <span style={{fontSize:11,color:C.barkL,display:"block",marginTop:3,marginLeft:26}}>{facturaIVA?"Las tarifas se ingresarán con y sin IVA. Para los cálculos se usa el valor sin IVA (el IVA es recaudación, no ingreso).":"Si no facturas con IVA, las tarifas se ingresan directamente."}</span>
+        </div>
         <Txt label="Email" value={email} onChange={setEmail} placeholder="tu@email.com"/>
         <Txt label="WhatsApp" value={tel} onChange={setTel} placeholder="0999..."/>
       </Sec>
       <Sec title="Hogares" icon="🏠">
         <IB>💡 Cada plan con su frecuencia y tarifa.</IB>
-        {hTiers.map(t=><TierCard key={t.id} t={t} onChange={u=>setHT(hTiers.map(x=>x.id===t.id?u:x))} onRemove={()=>setHT(hTiers.filter(x=>x.id!==t.id))} nLabel="Plan" nField="plan" cLabel="Hogares"/>)}
+        {hTiers.map(t=><TierCard key={t.id} t={t} onChange={u=>setHT(hTiers.map(x=>x.id===t.id?u:x))} onRemove={()=>setHT(hTiers.filter(x=>x.id!==t.id))} nLabel="Plan" nField="plan" cLabel="Hogares" showIVA={facturaIVA} ivaRate={IVA}/>)}
         {addBtn(C.earth,()=>{setHT([...hTiers,{id:nxH,plan:"",cantidad:10,kgPorRecol:4,frecuencia:4,tarifa:8}]);sNxH(nxH+1);},"+ Plan")}
         <div style={{background:C.ghost,borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.barkL}}>Total: <strong style={{color:C.earth}}>{R.hog}</strong> hogares · <strong style={{color:C.earth}}>{fN(R.kgH)} kg/mes</strong></div>
       </Sec>
       <Sec title="Empresas" icon="🏢" accent={C.earthL}>
         <IB>💡 Restaurantes, oficinas, hoteles. Cada tipo con su tarifa.</IB>
-        {eTiers.map(t=><TierCard key={t.id} t={t} onChange={u=>setET(eTiers.map(x=>x.id===t.id?u:x))} onRemove={()=>setET(eTiers.filter(x=>x.id!==t.id))} nLabel="Tipo" nField="tipo" cLabel="Empresas"/>)}
+        {eTiers.map(t=><TierCard key={t.id} t={t} onChange={u=>setET(eTiers.map(x=>x.id===t.id?u:x))} onRemove={()=>setET(eTiers.filter(x=>x.id!==t.id))} nLabel="Tipo" nField="tipo" cLabel="Empresas" showIVA={facturaIVA} ivaRate={IVA}/>)}
         {addBtn(C.earthL,()=>{setET([...eTiers,{id:nxE,tipo:"",cantidad:1,kgPorRecol:10,frecuencia:4,tarifa:25}]);sNxE(nxE+1);},"+ Tipo")}
         {R.emp>0&&<div style={{background:C.ghost,borderRadius:8,padding:"10px 12px",marginTop:10,fontSize:12,color:C.barkL}}>Total: <strong style={{color:C.earthL}}>{R.emp}</strong> empresas · <strong style={{color:C.earthL}}>{fN(R.kgE)} kg/mes</strong></div>}
       </Sec>
@@ -829,7 +845,7 @@ function App(){
           {gastoMayorVeh>0&&<Txt label="Detalle" value={gastoMayorVehD} onChange={setGastoMayorVehD} placeholder="Ej: reparación motor, transmisión, carrocería..."/>}
         </>}
         <Inp label="Insumos compostaje" value={insumos} onChange={setInsumos} unit="$/mes"/>
-        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos..."/>}
+        {insumos>0&&<Txt label="¿Cuáles insumos?" value={insumosD} onChange={setInsumosD} placeholder="Ej: material seco (aserrín, hojarasca), microorganismos, cal, melaza..."/>}
         <Inp label="Baldes" value={baldes} onChange={setBaldes} unit="$/mes"/>
         <Inp label="Otros" value={otrosV} onChange={setOtrosV} unit="$/mes"/>
         {otrosV>0&&<Txt label="¿Qué incluyen?" value={otrosVD} onChange={setOtrosVD} placeholder="Ej: empaques, análisis de laboratorio, fumigación..."/>}
@@ -870,7 +886,11 @@ function App(){
         <Txt label="Tipo de compostaje" value={tipoCompostaje} onChange={setTipoCompostaje} placeholder="Ej: compostaje aeróbico en pilas, vermicompostaje, bokashi, compostaje en trincheras..." hint="Describe brevemente el método que utilizas"/>
         <Inp label="Porcentaje de conversión estimada de residuos orgánicos a enmienda orgánica" value={tasaC} onChange={setTasaC} unit="%" min={10} max={50} hint="Incluye el volumen total de conversión incluyendo material seco y otros insumos utilizados."/>
         <Inp label="kg de compost vendidos/mes" value={kgVend} onChange={setKgVend} unit="kg/mes" min={0} hint={`Produces ${fN(R.kgComp)} kg/mes. El resto puede ser donación o autoconsumo.`}/>
-        <Inp label="$/kg" value={precKg} onChange={setPrecKg} unit="$/kg" step={0.05}/>
+        <Inp label={facturaIVA?"$/kg sin IVA":"$/kg"} value={precKg} onChange={setPrecKg} unit="$/kg" step={0.05}/>
+        {facturaIVA&&<div style={{background:`${C.amber}08`,borderRadius:8,padding:"8px 10px",marginBottom:10,fontSize:12}}>
+          <span style={{color:C.barkL}}>$/kg con IVA: </span><span style={{fontFamily:"'DM Mono',monospace",color:C.amber,fontWeight:600}}>{f$(precKg*(1+IVA))}</span>
+          <span style={{color:C.barkL,marginLeft:8}}>IVA: {f$(precKg*IVA)}/kg</span>
+        </div>}
         <div style={{background:`${C.leaf}0D`,borderRadius:8,padding:"10px 12px"}}>
           <span style={{fontSize:16,fontWeight:700,color:C.leaf,fontFamily:"'DM Mono',monospace"}}>{f$(R.incComp)}/mes</span>
           <span style={{fontSize:11,color:C.barkL}}> ({fN(R.kgComp)} kg)</span>
@@ -886,11 +906,12 @@ function App(){
                 style={{width:"100%",padding:"6px 8px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:12,color:C.soil,background:C.white,outline:"none",boxSizing:"border-box"}}/>
             </div>
             <div style={{width:90}}>
-              <label style={{fontSize:9,fontWeight:600,color:C.barkL}}>$/mes</label>
+              <label style={{fontSize:9,fontWeight:600,color:C.barkL}}>{facturaIVA?"$/mes sin IVA":"$/mes"}</label>
               <input type="number" value={item.monto} min={0} onChange={e=>setOtrosIngItems(otrosIngItems.map(x=>x.id===item.id?{...x,monto:Number(e.target.value)}:x))}
                 style={{width:"100%",padding:"6px 7px",border:`1.5px solid ${C.warm}`,borderRadius:7,fontSize:12,fontFamily:"'DM Mono',monospace",color:C.soil,background:C.white,outline:"none",textAlign:"right",boxSizing:"border-box"}}/>
             </div>
           </div>
+          {facturaIVA&&item.monto>0&&<div style={{fontSize:10,color:C.barkL,marginTop:4}}>Con IVA: <strong style={{color:C.amber}}>{f$(item.monto*(1+IVA))}</strong></div>}
         </div>)}
         {addBtn(C.amber,()=>{setOtrosIngItems([...otrosIngItems,{id:nxOI,desc:"",monto:0}]);sNxOI(nxOI+1);},"+ Otro ingreso")}
         {otrosIng>0&&<div style={{background:`${C.amber}15`,borderRadius:8,padding:"10px 12px",marginTop:8}}>
@@ -970,7 +991,7 @@ function App(){
           {l:"(-) Arriendo",v:arriendo,c:C.danger},{l:"(-) Agua+Luz",v:servBas,c:C.danger},
           {l:"(-) Depreciación",v:R.depM,c:C.danger},{l:"(-) Amortización",v:R.amortM,c:C.danger},
           {l:"(-) Marketing",v:mkt,c:C.danger},
-          costosAdmin>0?{l:"(-) Administrativos (contabilidad, otros)",v:costosAdmin,c:C.danger}:null,
+          costosAdmin>0?{l:"(-) Administrativos",v:costosAdmin,c:C.danger}:null,
           seguroVeh>0?{l:"(-) Seguro vehicular",v:seguroVeh,c:C.danger}:null,
           otrosF>0?{l:`(-) ${otrosFD||"Otros"}`,v:otrosF,c:C.danger}:null,
           {l:"(-) Variables",v:R.cv,c:C.danger},{d:true},
